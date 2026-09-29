@@ -1,4 +1,5 @@
 import { Property } from "@/types/property";
+import Link from "next/link";
 
 export default function PropertyCard({
   property,
@@ -74,13 +75,16 @@ export default function PropertyCard({
           </p>
         </div>
 
-        <button className="mt-5 flex w-full items-center justify-between border-t border-slate-100 pt-4 text-sm font-semibold">
-          View property
+        <Link
+         href={`/properties/${property.id}`}
+         className="mt-5 flex w-full items-center justify-between border-t border-slate-100 pt-4 text-sm font-semibold"
+        >
+         View property
 
-          <span className="transition duration-300 group-hover:translate-x-1">
-            →
-          </span>
-        </button>
+            <span className="transition duration-300 group-hover:translate-x-1">
+             →
+            </span>
+        </Link>
       </div>
     </article>
   );
