@@ -4,7 +4,7 @@ import LocationSection from "@/components/LocationSection";
 import {
   booniProperties,
   balachProperties,
-} from "@/Data/properties";
+} from "@/data/properties";
 
 export default function Home() {
   return (
