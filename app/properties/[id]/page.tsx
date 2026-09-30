@@ -5,13 +5,11 @@ import Navbar from "@/components/Navbar";
 import PropertyPassport from "@/components/PropertyPassport";
 import VerificationPanel from "@/components/VerificationPanel";
 
-import { allProperties } from "@/data/properties";
+import {
+  getPropertyById,
+} from "@/lib/properties";
 
-export function generateStaticParams() {
-  return allProperties.map((property) => ({
-    id: property.id,
-  }));
-}
+
 
 export default async function PropertyPage({
   params,
@@ -22,9 +20,8 @@ export default async function PropertyPage({
 }) {
   const { id } = await params;
 
-  const property = allProperties.find(
-    (item) => item.id === id
-  );
+  const property =
+  await getPropertyById(id);
 
   if (!property) {
     notFound();

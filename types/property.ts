@@ -45,7 +45,9 @@ export type Property = {
   estimate: string;
 
   title: string;
+
   location: string;
+  locationSlug: string;
 
   size: string;
   type: PropertyType;

@@ -2,11 +2,24 @@ import Navbar from "@/components/Navbar";
 import LocationSection from "@/components/LocationSection";
 
 import {
-  booniProperties,
-  balachProperties,
-} from "@/data/properties";
+  getAllProperties,
+} from "@/lib/properties";
 
-export default function Home() {
+export default async function Home() {
+  const properties =
+    await getAllProperties();
+
+  const booniProperties =
+    properties.filter(
+      (property) =>
+        property.locationSlug === "booni"
+    );
+
+  const balachProperties =
+    properties.filter(
+      (property) =>
+        property.locationSlug === "balach"
+    );
   return (
     <main className="min-h-screen overflow-hidden bg-[#f7f8fa] text-slate-950">
       {/* Background atmosphere */}
