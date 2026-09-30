@@ -49,6 +49,9 @@ export type Property = {
   location: string;
   locationSlug: string;
 
+  latitude: number | null;
+  longitude: number | null;
+
   size: string;
   type: PropertyType;
 

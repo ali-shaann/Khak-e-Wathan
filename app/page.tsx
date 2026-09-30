@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import LocationSection from "@/components/LocationSection";
+import Link from "next/link";
 
 import {
   getAllProperties,
@@ -86,9 +87,12 @@ export default async function Home() {
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <button className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                Explore interactive map
-              </button>
+              <Link
+              href="/map"
+               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+              Explore interactive map
+              </Link>
 
               <button className="rounded-full px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-white">
                 List your property →

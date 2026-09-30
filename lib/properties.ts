@@ -40,6 +40,9 @@ type PropertyRow = {
   area_value: number;
   area_unit: string;
 
+  latitude: number | null;
+  longitude: number | null;
+
   road_access: boolean;
   road_type: string | null;
   distance_to_main_road_m: number | null;
@@ -72,6 +75,8 @@ type PropertyRow = {
 };
 
 const propertySelect = `
+  latitude,
+  longitude,
   id,
   title,
   description,
@@ -197,6 +202,16 @@ function mapProperty(
 
     locationSlug:
       location?.slug ?? "chitral",
+
+    latitude:
+    row.latitude === null
+    ? null
+    : Number(row.latitude),
+
+    longitude:
+    row.longitude === null
+    ? null
+    : Number(row.longitude),
 
     size: formatArea(
       Number(row.area_value),
