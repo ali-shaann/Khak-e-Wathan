@@ -5,6 +5,8 @@ import Navbar from "@/components/Navbar";
 import PropertyPassport from "@/components/PropertyPassport";
 import VerificationPanel from "@/components/VerificationPanel";
 
+import SinglePropertyMapShell from "@/components/map/SinglePropertyMapShell";
+
 import {
   getPropertyById,
 } from "@/lib/properties";
@@ -270,45 +272,45 @@ export default async function PropertyPage({
         </div>
 
         {/* Location placeholder */}
-        <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <section className="mt-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col justify-between gap-4 p-6 sm:flex-row sm:items-center sm:p-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                Location
-              </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            Property Location
+            </p>
 
-              <h2 className="mt-2 text-2xl font-bold">
-                {property.location}, Chitral
-              </h2>
+            <h2 className="mt-2 text-2xl font-bold">
+            {property.location}, Chitral
+       </h2>
 
-              <p className="mt-2 text-sm text-slate-500">
-                The interactive map will appear here in our
-                map phase.
-              </p>
-            </div>
+      <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+        Explore the approximate property location and its
+        surrounding area.
+      </p>
+    </div>
 
-            <button className="self-start rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold">
-              Explore map →
-            </button>
-          </div>
+    <Link
+      href="/map"
+      className="self-start rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      Open full map →
+    </Link>
+  </div>
 
-          <div className="relative mt-6 h-64 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-100 via-emerald-50 to-sky-100">
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute left-[20%] h-full w-px rotate-12 bg-slate-400" />
-              <div className="absolute left-[55%] h-full w-px -rotate-6 bg-slate-400" />
-              <div className="absolute top-[35%] h-px w-full rotate-3 bg-slate-400" />
-              <div className="absolute top-[70%] h-px w-full -rotate-3 bg-slate-400" />
-            </div>
+  <div className="h-[320px] border-t border-slate-100 sm:h-[400px]">
+    <SinglePropertyMapShell
+      property={property}
+    />
+  </div>
 
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="rounded-full bg-slate-950 px-4 py-2 text-xs font-bold text-white shadow-xl">
-                {property.price}
-              </div>
-
-              <div className="mx-auto -mt-1 h-3 w-3 rotate-45 bg-slate-950" />
-            </div>
-          </div>
-        </section>
+  <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 sm:px-8">
+    <p className="text-xs leading-5 text-slate-500">
+      Demo property location for the hackathon prototype.
+      Production listings would use seller-submitted and
+      verified coordinates.
+    </p>
+  </div>
+</section>
       </section>
     </main>
   );
