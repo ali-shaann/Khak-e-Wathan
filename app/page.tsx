@@ -29,7 +29,7 @@ export default async function Home() {
         <div className="absolute right-[-10%] top-[15%] h-[500px] w-[500px] rounded-full bg-sky-200/30 blur-3xl" />
       </div>
 
-      <Navbar/>
+      <Navbar />
       
       {/* Hero */}
       <section className="relative">

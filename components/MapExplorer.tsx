@@ -7,7 +7,7 @@ import {
 
 import Link from "next/link";
 
-import Navbar from "@/components/Navbar";
+
 import MapShell from "@/components/map/MapShell";
 
 import { Property } from "@/types/property";
@@ -74,7 +74,7 @@ export default function MapExplorer({
 
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-slate-950">
-      <Navbar />
+      
 
       {/* Heading */}
       <section className="border-b border-slate-200 bg-white">

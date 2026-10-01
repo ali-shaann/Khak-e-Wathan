@@ -1,3 +1,4 @@
+import Navbar from "@/components/Navbar";
 import PropertyExplorer from "@/components/PropertyExplorer";
 
 import {
@@ -9,8 +10,12 @@ export default async function PropertiesPage() {
     await getAllProperties();
 
   return (
-    <PropertyExplorer
-      properties={properties}
-    />
+    <>
+      <Navbar />
+
+      <PropertyExplorer
+        properties={properties}
+      />
+    </>
   );
 }

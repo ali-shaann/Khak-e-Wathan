@@ -1,3 +1,4 @@
+import Navbar from "@/components/Navbar";
 import MapExplorer from "@/components/MapExplorer";
 
 import {
@@ -9,8 +10,12 @@ export default async function MapPage() {
     await getAllProperties();
 
   return (
-    <MapExplorer
-      properties={properties}
-    />
+    <>
+      <Navbar />
+
+      <MapExplorer
+        properties={properties}
+      />
+    </>
   );
 }

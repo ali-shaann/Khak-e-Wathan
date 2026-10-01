@@ -1,31 +1,49 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import {
+  createServerClient,
+} from "@supabase/ssr";
+
+import {
+  cookies,
+} from "next/headers";
 
 export async function createClient() {
-  const cookieStore = await cookies();
+  const cookieStore =
+    await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL!,
+
+    process.env
+      .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+
     {
       cookies: {
         getAll() {
           return cookieStore.getAll();
         },
 
-        setAll(cookiesToSet, _headers) {
+        setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(
-              ({ name, value, options }) =>
-                cookieStore.set(name, value, options)
+              ({
+                name,
+                value,
+                options,
+              }) => {
+                cookieStore.set(
+                  name,
+                  value,
+                  options
+                );
+              }
             );
           } catch {
             /*
-             * A Server Component cannot always write cookies.
-             * This is okay for now.
+             * Server Components cannot always
+             * write cookies.
              *
-             * When we build authentication, we will add the
-             * Supabase proxy responsible for refreshing sessions.
+             * proxy.ts handles session refresh.
              */
           }
         },

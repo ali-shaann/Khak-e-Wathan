@@ -1,6 +1,16 @@
 import Link from "next/link";
 
-export default function Navbar() {
+import { createClient } from "@/lib/supabase/server";
+
+export default async function Navbar() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const loggedIn = Boolean(user);
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/50 bg-white/75 backdrop-blur-xl">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -52,12 +62,21 @@ export default function Navbar() {
             Sell
           </Link>
 
-          <Link
-            href="/login"
-            className="rounded-full bg-slate-950 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800"
-          >
-            Sign In
-          </Link>
+          {loggedIn ? (
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-slate-950 px-5 py-2.5 font-semibold text-white"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-full bg-slate-950 px-5 py-2.5 font-semibold text-white"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
 
         <button className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold shadow-sm md:hidden">

@@ -5,7 +5,6 @@ import {
   useState,
 } from "react";
 
-import Navbar from "@/components/Navbar";
 import PropertyCard from "@/components/PropertyCard";
 
 import { Property } from "@/types/property";
@@ -106,7 +105,7 @@ export default function PropertyExplorer({
 
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-slate-950">
-      <Navbar />
+      
 
       {/* Page heading */}
       <section className="border-b border-slate-200 bg-white">
