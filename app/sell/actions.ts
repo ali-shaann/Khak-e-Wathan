@@ -222,7 +222,7 @@ export async function createListing(formData: FormData) {
 
   revalidatePath("/dashboard");
 
-  redirect("/dashboard?message=Property submitted for review.");
+  redirect(`/sell/photos?property=${encodeURIComponent(propertyId)}`);
 }
 
 /* ============================================================
