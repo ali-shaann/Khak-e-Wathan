@@ -279,23 +279,33 @@ export default async function DashboardPage({
           )}
         </section>
 
-        {profile?.role ===
-          "admin" && (
-          <section className="mt-6 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              Administrator
-            </p>
+        {profile?.role === "admin" && (
+  <section className="mt-6 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
+    <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+          Administrator
+        </p>
 
-            <h2 className="mt-2 text-2xl font-bold">
-              Admin tools
-            </h2>
+        <h2 className="mt-2 text-2xl font-bold">
+          Property review center
+        </h2>
 
-            <p className="mt-2 text-sm text-slate-400">
-              Listing approval and verification tools
-              are coming in the admin phase.
-            </p>
-          </section>
-        )}
+        <p className="mt-2 text-sm text-slate-400">
+          Review seller submissions before they
+          become visible to buyers.
+        </p>
+      </div>
+
+      <Link
+        href="/admin"
+        className="self-start rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950"
+      >
+        Open admin panel
+      </Link>
+    </div>
+  </section>
+)}
       </section>
     </main>
   );
