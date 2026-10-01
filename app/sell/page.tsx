@@ -1,16 +1,12 @@
-import {
-  redirect,
-} from "next/navigation";
+import LocationPickerShell from "@/components/sell/LocationPickerShell";
+
+import { redirect } from "next/navigation";
 
 import Navbar from "@/components/Navbar";
 
-import {
-  createClient,
-} from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
-import {
-  createListing,
-} from "@/app/sell/actions";
+import { createListing } from "@/app/sell/actions";
 
 export default async function SellPage({
   searchParams,
@@ -19,11 +15,9 @@ export default async function SellPage({
     error?: string;
   }>;
 }) {
-  const params =
-    await searchParams;
+  const params = await searchParams;
 
-  const supabase =
-    await createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
@@ -33,23 +27,13 @@ export default async function SellPage({
     redirect("/login");
   }
 
-  const {
-    data: locations,
-  } = await supabase
+  const { data: locations } = await supabase
     .from("locations")
-    .select(
-      "id, name"
-    )
-    .eq(
-      "is_active",
-      true
-    )
-    .order(
-      "display_order",
-      {
-        ascending: true,
-      }
-    );
+    .select("id, name")
+    .eq("is_active", true)
+    .order("display_order", {
+      ascending: true,
+    });
 
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-slate-950">
@@ -65,8 +49,8 @@ export default async function SellPage({
         </h1>
 
         <p className="mt-4 max-w-2xl leading-7 text-slate-500">
-          Your listing will be submitted for review before
-          becoming visible publicly on Khak-e-Wathan.
+          Your listing will be submitted for review before becoming visible
+          publicly on Khak-e-Wathan.
         </p>
 
         {params.error && (
@@ -75,10 +59,7 @@ export default async function SellPage({
           </div>
         )}
 
-        <form
-          action={createListing}
-          className="mt-10 space-y-6"
-        >
+        <form action={createListing} className="mt-10 space-y-6">
           {/* ----------------------------------------------
               BASIC PROPERTY INFO
           ---------------------------------------------- */}
@@ -88,10 +69,7 @@ export default async function SellPage({
             title="Property"
             description="Basic information buyers will see first."
           >
-            <FormField
-              label="Listing title"
-              required
-            >
+            <FormField label="Listing title" required>
               <input
                 required
                 name="title"
@@ -101,68 +79,32 @@ export default async function SellPage({
               />
             </FormField>
 
-            <FormField
-              label="Property type"
-              required
-            >
-              <select
-                required
-                name="propertyType"
-                className={inputClass}
-              >
-                <option value="">
-                  Select type
-                </option>
+            <FormField label="Property type" required>
+              <select required name="propertyType" className={inputClass}>
+                <option value="">Select type</option>
 
-                <option value="residential">
-                  Residential
-                </option>
+                <option value="residential">Residential</option>
 
-                <option value="agricultural">
-                  Agricultural
-                </option>
+                <option value="agricultural">Agricultural</option>
 
-                <option value="commercial">
-                  Commercial
-                </option>
+                <option value="commercial">Commercial</option>
               </select>
             </FormField>
 
-            <FormField
-              label="Location"
-              required
-            >
-              <select
-                required
-                name="locationId"
-                className={inputClass}
-              >
-                <option value="">
-                  Select location
-                </option>
+            <FormField label="Location" required>
+              <select required name="locationId" className={inputClass}>
+                <option value="">Select location</option>
 
-                {locations?.map(
-                  (location) => (
-                    <option
-                      key={
-                        location.id
-                      }
-                      value={
-                        location.id
-                      }
-                    >
-                      {location.name}
-                    </option>
-                  )
-                )}
+                {locations?.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
               </select>
             </FormField>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <FormField
-                label="Land size"
-                required
-              >
+              <FormField label="Land size" required>
                 <input
                   required
                   min="0.01"
@@ -174,34 +116,18 @@ export default async function SellPage({
                 />
               </FormField>
 
-              <FormField
-                label="Unit"
-                required
-              >
-                <select
-                  required
-                  name="areaUnit"
-                  className={inputClass}
-                >
-                  <option value="marla">
-                    Marla
-                  </option>
+              <FormField label="Unit" required>
+                <select required name="areaUnit" className={inputClass}>
+                  <option value="marla">Marla</option>
 
-                  <option value="kanal">
-                    Kanal
-                  </option>
+                  <option value="kanal">Kanal</option>
 
-                  <option value="sq_ft">
-                    Square feet
-                  </option>
+                  <option value="sq_ft">Square feet</option>
                 </select>
               </FormField>
             </div>
 
-            <FormField
-              label="Asking price (PKR)"
-              required
-            >
+            <FormField label="Asking price (PKR)" required>
               <input
                 required
                 min="1"
@@ -212,10 +138,7 @@ export default async function SellPage({
               />
             </FormField>
 
-            <FormField
-              label="Description"
-              required
-            >
+            <FormField label="Description" required>
               <textarea
                 required
                 name="description"
@@ -224,6 +147,20 @@ export default async function SellPage({
                 className={inputClass}
               />
             </FormField>
+          </FormSection>
+
+          <FormSection
+            eyebrow="02"
+            title="Property location"
+            description="Mark the approximate location of the property on the map."
+          >
+            <LocationPickerShell />
+
+            <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+              For the demo, sellers should mark an approximate property
+              location. Exact parcel boundaries and legal ownership verification
+              happen during review.
+            </div>
           </FormSection>
 
           {/* ----------------------------------------------
@@ -235,10 +172,7 @@ export default async function SellPage({
             title="Access & utilities"
             description="Important practical information about the property."
           >
-            <CheckboxField
-              name="roadAccess"
-              label="Vehicle road access"
-            />
+            <CheckboxField name="roadAccess" label="Vehicle road access" />
 
             <FormField label="Road type">
               <input
@@ -259,10 +193,7 @@ export default async function SellPage({
               />
             </FormField>
 
-            <CheckboxField
-              name="waterAvailable"
-              label="Water available"
-            />
+            <CheckboxField name="waterAvailable" label="Water available" />
 
             <FormField label="Water source">
               <input
@@ -284,25 +215,14 @@ export default async function SellPage({
             />
 
             <FormField label="Internet / mobile connectivity">
-              <select
-                name="internetQuality"
-                className={inputClass}
-              >
-                <option value="">
-                  Not specified
-                </option>
+              <select name="internetQuality" className={inputClass}>
+                <option value="">Not specified</option>
 
-                <option value="poor">
-                  Poor
-                </option>
+                <option value="poor">Poor</option>
 
-                <option value="fair">
-                  Fair
-                </option>
+                <option value="fair">Fair</option>
 
-                <option value="good">
-                  Good
-                </option>
+                <option value="good">Good</option>
               </select>
             </FormField>
           </FormSection>
@@ -318,48 +238,26 @@ export default async function SellPage({
           >
             <div className="grid gap-5 sm:grid-cols-2">
               <FormField label="Terrain">
-                <select
-                  name="terrain"
-                  className={inputClass}
-                >
-                  <option value="">
-                    Not specified
-                  </option>
+                <select name="terrain" className={inputClass}>
+                  <option value="">Not specified</option>
 
-                  <option value="flat">
-                    Flat
-                  </option>
+                  <option value="flat">Flat</option>
 
-                  <option value="mixed">
-                    Mixed
-                  </option>
+                  <option value="mixed">Mixed</option>
 
-                  <option value="sloped">
-                    Sloped
-                  </option>
+                  <option value="sloped">Sloped</option>
                 </select>
               </FormField>
 
               <FormField label="Slope">
-                <select
-                  name="slope"
-                  className={inputClass}
-                >
-                  <option value="">
-                    Not specified
-                  </option>
+                <select name="slope" className={inputClass}>
+                  <option value="">Not specified</option>
 
-                  <option value="low">
-                    Low
-                  </option>
+                  <option value="low">Low</option>
 
-                  <option value="moderate">
-                    Moderate
-                  </option>
+                  <option value="moderate">Moderate</option>
 
-                  <option value="steep">
-                    Steep
-                  </option>
+                  <option value="steep">Steep</option>
                 </select>
               </FormField>
             </div>
@@ -391,10 +289,9 @@ export default async function SellPage({
             </h2>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-              The property will not become publicly visible
-              until an administrator approves the listing.
-              Photos and exact map location will be added in
-              the next stage of the seller workflow.
+              The property will not become publicly visible until an
+              administrator approves the listing. Photos and exact map location
+              will be added in the next stage of the seller workflow.
             </p>
 
             <button
@@ -410,14 +307,12 @@ export default async function SellPage({
   );
 }
 
-
 /* ============================================================
    Components
 ============================================================ */
 
 const inputClass =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none transition focus:border-slate-400 focus:bg-white";
-
 
 function FormSection({
   eyebrow,
@@ -437,22 +332,15 @@ function FormSection({
           Step {eyebrow}
         </p>
 
-        <h2 className="mt-2 text-2xl font-bold">
-          {title}
-        </h2>
+        <h2 className="mt-2 text-2xl font-bold">{title}</h2>
 
-        <p className="mt-2 text-sm text-slate-500">
-          {description}
-        </p>
+        <p className="mt-2 text-sm text-slate-500">{description}</p>
       </div>
 
-      <div className="space-y-5">
-        {children}
-      </div>
+      <div className="space-y-5">{children}</div>
     </section>
   );
 }
-
 
 function FormField({
   label,
@@ -468,11 +356,7 @@ function FormField({
       <span className="mb-2 block text-sm font-semibold text-slate-700">
         {label}
 
-        {required && (
-          <span className="ml-1 text-red-500">
-            *
-          </span>
-        )}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </span>
 
       {children}
@@ -480,58 +364,27 @@ function FormField({
   );
 }
 
-
-function CheckboxField({
-  name,
-  label,
-}: {
-  name: string;
-  label: string;
-}) {
+function CheckboxField({ name, label }: { name: string; label: string }) {
   return (
     <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-      <input
-        name={name}
-        type="checkbox"
-        className="h-4 w-4"
-      />
+      <input name={name} type="checkbox" className="h-4 w-4" />
 
-      <span className="text-sm font-semibold text-slate-700">
-        {label}
-      </span>
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
     </label>
   );
 }
 
-
-function SuitabilityField({
-  name,
-  label,
-}: {
-  name: string;
-  label: string;
-}) {
+function SuitabilityField({ name, label }: { name: string; label: string }) {
   return (
     <FormField label={label}>
-      <select
-        name={name}
-        className={inputClass}
-      >
-        <option value="">
-          Not specified
-        </option>
+      <select name={name} className={inputClass}>
+        <option value="">Not specified</option>
 
-        <option value="low">
-          Low
-        </option>
+        <option value="low">Low</option>
 
-        <option value="moderate">
-          Moderate
-        </option>
+        <option value="moderate">Moderate</option>
 
-        <option value="high">
-          High
-        </option>
+        <option value="high">High</option>
       </select>
     </FormField>
   );

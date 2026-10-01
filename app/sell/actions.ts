@@ -7,9 +7,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function createListing(
-  formData: FormData
-) {
+export async function createListing(formData: FormData) {
   const supabase = await createClient();
 
   /* ---------------------------------------------------------
@@ -28,377 +26,243 @@ export async function createListing(
      Basic values
   --------------------------------------------------------- */
 
-  const title = getText(
-    formData,
-    "title"
-  );
+  const title = getText(formData, "title");
 
-  const description = getText(
-    formData,
-    "description"
-  );
+  const description = getText(formData, "description");
 
-  const locationId = getText(
-    formData,
-    "locationId"
-  );
+  const locationId = getText(formData, "locationId");
 
-  const propertyType = getText(
-    formData,
-    "propertyType"
-  );
+  const propertyType = getText(formData, "propertyType");
 
-  const areaUnit = getText(
-    formData,
-    "areaUnit"
-  );
+  const areaUnit = getText(formData, "areaUnit");
 
-  const pricePkr = Number(
-    formData.get("pricePkr")
-  );
+  const pricePkr = Number(formData.get("pricePkr"));
 
-  const areaValue = Number(
-    formData.get("areaValue")
-  );
+  const areaValue = Number(formData.get("areaValue"));
 
   /* ---------------------------------------------------------
      Validation
   --------------------------------------------------------- */
 
-  if (
-    !title ||
-    !description ||
-    !locationId
-  ) {
-    redirect(
-      "/sell?error=Please complete all required property information."
-    );
+  if (!title || !description || !locationId) {
+    redirect("/sell?error=Please complete all required property information.");
   }
 
-  if (
-    ![
-      "residential",
-      "agricultural",
-      "commercial",
-    ].includes(propertyType)
-  ) {
-    redirect(
-      "/sell?error=Invalid property type."
-    );
+  if (!["residential", "agricultural", "commercial"].includes(propertyType)) {
+    redirect("/sell?error=Invalid property type.");
   }
 
-  if (
-    ![
-      "marla",
-      "kanal",
-      "sq_ft",
-    ].includes(areaUnit)
-  ) {
-    redirect(
-      "/sell?error=Invalid land area unit."
-    );
+  if (!["marla", "kanal", "sq_ft"].includes(areaUnit)) {
+    redirect("/sell?error=Invalid land area unit.");
   }
 
-  if (
-    !Number.isFinite(pricePkr) ||
-    pricePkr <= 0
-  ) {
-    redirect(
-      "/sell?error=Please enter a valid asking price."
-    );
+  if (!Number.isFinite(pricePkr) || pricePkr <= 0) {
+    redirect("/sell?error=Please enter a valid asking price.");
   }
 
-  if (
-    !Number.isFinite(areaValue) ||
-    areaValue <= 0
-  ) {
-    redirect(
-      "/sell?error=Please enter a valid land size."
-    );
+  if (!Number.isFinite(areaValue) || areaValue <= 0) {
+    redirect("/sell?error=Please enter a valid land size.");
   }
 
   /* ---------------------------------------------------------
      Confirm location is an active Khak-e-Wathan location
   --------------------------------------------------------- */
 
-  const {
-    data: location,
-    error: locationError,
-  } = await supabase
+  const { data: location, error: locationError } = await supabase
     .from("locations")
     .select("id")
     .eq("id", locationId)
     .eq("is_active", true)
     .maybeSingle();
 
-  if (
-    locationError ||
-    !location
-  ) {
-    redirect(
-      "/sell?error=Please choose a valid active location."
-    );
+  if (locationError || !location) {
+    redirect("/sell?error=Please choose a valid active location.");
   }
 
   /* ---------------------------------------------------------
      Seller profile
   --------------------------------------------------------- */
 
-  const {
-    data: profile,
-  } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("full_name")
     .eq("id", user.id)
     .maybeSingle();
 
   const sellerName =
-    profile?.full_name ||
-    user.email?.split("@")[0] ||
-    "Seller";
+    profile?.full_name || user.email?.split("@")[0] || "Seller";
 
   /* ---------------------------------------------------------
      Optional / structured property data
   --------------------------------------------------------- */
 
-  const roadAccess =
-    formData.get("roadAccess") ===
-    "on";
+  const roadAccess = formData.get("roadAccess") === "on";
 
-  const roadType = optionalText(
+  const roadType = optionalText(formData, "roadType");
+
+  const distanceToMainRoadM = optionalNumber(formData, "distanceToMainRoadM");
+
+  const waterAvailable = formData.get("waterAvailable") === "on";
+
+  const waterSource = optionalText(formData, "waterSource");
+
+  const electricityAvailable = formData.get("electricityAvailable") === "on";
+
+  const irrigationAvailable = formData.get("irrigationAvailable") === "on";
+
+  const internetQuality = optionalEnum(formData, "internetQuality", [
+    "poor",
+    "fair",
+    "good",
+  ]);
+
+  const terrain = optionalEnum(formData, "terrain", [
+    "flat",
+    "mixed",
+    "sloped",
+  ]);
+
+  const slope = optionalEnum(formData, "slope", ["low", "moderate", "steep"]);
+
+  const residentialSuitability = optionalEnum(
     formData,
-    "roadType"
+    "residentialSuitability",
+    ["low", "moderate", "high"],
   );
 
-  const distanceToMainRoadM =
-    optionalNumber(
-      formData,
-      "distanceToMainRoadM"
-    );
-
-  const waterAvailable =
-    formData.get(
-      "waterAvailable"
-    ) === "on";
-
-  const waterSource =
-    optionalText(
-      formData,
-      "waterSource"
-    );
-
-  const electricityAvailable =
-    formData.get(
-      "electricityAvailable"
-    ) === "on";
-
-  const irrigationAvailable =
-    formData.get(
-      "irrigationAvailable"
-    ) === "on";
-
-  const internetQuality =
-    optionalEnum(
-      formData,
-      "internetQuality",
-      ["poor", "fair", "good"]
-    );
-
-  const terrain =
-    optionalEnum(
-      formData,
-      "terrain",
-      ["flat", "mixed", "sloped"]
-    );
-
-  const slope =
-    optionalEnum(
-      formData,
-      "slope",
-      ["low", "moderate", "steep"]
-    );
-
-  const residentialSuitability =
-    optionalEnum(
-      formData,
-      "residentialSuitability",
-      ["low", "moderate", "high"]
-    );
-
-  const agriculturalSuitability =
-    optionalEnum(
-      formData,
-      "agriculturalSuitability",
-      ["low", "moderate", "high"]
-    );
+  const agriculturalSuitability = optionalEnum(
+    formData,
+    "agriculturalSuitability",
+    ["low", "moderate", "high"],
+  );
 
   /* ---------------------------------------------------------
      Create property
   --------------------------------------------------------- */
 
-  const propertyId =
-    `listing-${randomUUID()}`;
+  const latitudeRaw = getText(formData, "latitude");
 
-  const {
-    error: insertError,
-  } = await supabase
+  const longitudeRaw = getText(formData, "longitude");
+
+  const latitude = Number(latitudeRaw);
+
+  const longitude = Number(longitudeRaw);
+
+  if (
+    !latitudeRaw ||
+    !longitudeRaw ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    redirect("/sell?error=Please select the property location on the map.");
+  }
+  const propertyId = `listing-${randomUUID()}`;
+
+  const { error: insertError } = await supabase
     .from("properties")
+
     .insert({
       id: propertyId,
 
       seller_id: user.id,
 
-      location_id:
-        locationId,
+      location_id: locationId,
 
       title,
       description,
 
-      property_type:
-        propertyType,
+      property_type: propertyType,
 
-      listing_status:
-        "pending_review",
+      listing_status: "pending_review",
 
-      price_pkr:
-        Math.round(pricePkr),
+      price_pkr: Math.round(pricePkr),
 
-      area_value:
-        areaValue,
+      latitude,
+      longitude,
 
-      area_unit:
-        areaUnit,
+      area_value: areaValue,
 
-      road_access:
-        roadAccess,
+      area_unit: areaUnit,
 
-      road_type:
-        roadType,
+      road_access: roadAccess,
 
-      distance_to_main_road_m:
-        distanceToMainRoadM,
+      road_type: roadType,
 
-      water_available:
-        waterAvailable,
+      distance_to_main_road_m: distanceToMainRoadM,
 
-      water_source:
-        waterSource,
+      water_available: waterAvailable,
 
-      electricity_available:
-        electricityAvailable,
+      water_source: waterSource,
 
-      irrigation_available:
-        irrigationAvailable,
+      electricity_available: electricityAvailable,
 
-      internet_quality:
-        internetQuality,
+      irrigation_available: irrigationAvailable,
+
+      internet_quality: internetQuality,
 
       terrain,
       slope,
 
-      residential_suitability:
-        residentialSuitability,
+      residential_suitability: residentialSuitability,
 
-      agricultural_suitability:
-        agriculturalSuitability,
+      agricultural_suitability: agriculturalSuitability,
 
-      seller_display_name:
-        sellerName,
+      seller_display_name: sellerName,
     });
 
   if (insertError) {
-    console.error(
-      "PROPERTY INSERT ERROR:",
-      insertError
-    );
+    console.error("PROPERTY INSERT ERROR:", insertError);
 
-    redirect(
-      `/sell?error=${encodeURIComponent(
-        insertError.message
-      )}`
-    );
+    redirect(`/sell?error=${encodeURIComponent(insertError.message)}`);
   }
 
-  revalidatePath(
-    "/dashboard"
-  );
+  revalidatePath("/dashboard");
 
-  redirect(
-    "/dashboard?message=Property submitted for review."
-  );
+  redirect("/dashboard?message=Property submitted for review.");
 }
-
 
 /* ============================================================
    Helpers
 ============================================================ */
 
-function getText(
-  formData: FormData,
-  key: string
-) {
-  return String(
-    formData.get(key) ?? ""
-  ).trim();
+function getText(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim();
 }
 
-
-function optionalText(
-  formData: FormData,
-  key: string
-) {
-  const value =
-    getText(
-      formData,
-      key
-    );
+function optionalText(formData: FormData, key: string) {
+  const value = getText(formData, key);
 
   return value || null;
 }
 
-
-function optionalNumber(
-  formData: FormData,
-  key: string
-) {
-  const raw =
-    getText(
-      formData,
-      key
-    );
+function optionalNumber(formData: FormData, key: string) {
+  const raw = getText(formData, key);
 
   if (!raw) {
     return null;
   }
 
-  const value =
-    Number(raw);
+  const value = Number(raw);
 
-  if (
-    !Number.isFinite(value) ||
-    value < 0
-  ) {
+  if (!Number.isFinite(value) || value < 0) {
     return null;
   }
 
   return value;
 }
 
-
 function optionalEnum(
   formData: FormData,
   key: string,
-  allowedValues: string[]
+  allowedValues: string[],
 ) {
-  const value =
-    getText(
-      formData,
-      key
-    );
+  const value = getText(formData, key);
 
-  if (
-    allowedValues.includes(value)
-  ) {
+  if (allowedValues.includes(value)) {
     return value;
   }
 
