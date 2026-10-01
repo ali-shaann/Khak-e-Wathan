@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ChangeEvent,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -12,11 +13,20 @@ import {
   createClient,
 } from "@/lib/supabase/client";
 
-type UploadedImage = {
-  name: string;
-  path: string;
-  url: string;
+type PropertyImage = {
+  id: string;
+  property_id: string;
+  storage_path: string;
+  alt_text: string | null;
+  display_order: number;
+  is_primary: boolean;
+  created_at: string;
 };
+
+type DisplayImage =
+  PropertyImage & {
+    url: string;
+  };
 
 const MAX_FILES = 5;
 
@@ -37,10 +47,13 @@ export default function PhotoUploader({
   propertyId: string;
 }) {
   const supabase =
-    createClient();
+    useMemo(
+      () => createClient(),
+      []
+    );
 
   const [images, setImages] =
-    useState<UploadedImage[]>([]);
+    useState<DisplayImage[]>([]);
 
   const [uploading, setUploading] =
     useState(false);
@@ -54,61 +67,74 @@ export default function PhotoUploader({
   const folder =
     `${userId}/${propertyId}`;
 
-  /* -------------------------------------------------------
-     Load photos already uploaded for this listing
-  ------------------------------------------------------- */
+  /* ========================================================
+     LOAD DATABASE IMAGE RECORDS
+  ======================================================== */
 
   useEffect(() => {
     async function loadImages() {
       const {
         data,
-        error,
-      } = await supabase.storage
-        .from("property-images")
-        .list(folder, {
-          limit: MAX_FILES,
-          sortBy: {
-            column: "created_at",
-            order: "asc",
-          },
-        });
+        error: imageError,
+      } = await supabase
+        .from("property_images")
+        .select(
+          `
+            id,
+            property_id,
+            storage_path,
+            alt_text,
+            display_order,
+            is_primary,
+            created_at
+          `
+        )
+        .eq(
+          "property_id",
+          propertyId
+        )
+        .order(
+          "display_order",
+          {
+            ascending: true,
+          }
+        );
 
-      if (error) {
+      if (imageError) {
         console.error(
-          "PHOTO LIST ERROR:",
-          error
+          "PROPERTY IMAGE LOAD ERROR:",
+          imageError
         );
 
         setError(
-          "Could not load existing property photos."
+          "Could not load property photos."
         );
 
         setLoading(false);
+
         return;
       }
 
       const loadedImages =
-        (data ?? [])
-          .filter(
-            (file) =>
-              file.name !== ".emptyFolderPlaceholder"
-          )
-          .map((file) => {
-            const path =
-              `${folder}/${file.name}`;
-
+        (data ?? []).map(
+          (image) => {
             const {
               data: publicData,
             } = supabase.storage
-              .from("property-images")
-              .getPublicUrl(path);
+              .from(
+                "property-images"
+              )
+              .getPublicUrl(
+                image.storage_path
+              );
 
             return {
-              name: file.name,
-              path,
-              url: publicData.publicUrl,
+              ...image,
+              url:
+                publicData.publicUrl,
             };
-          });
+          }
+        );
 
       setImages(
         loadedImages
@@ -119,13 +145,13 @@ export default function PhotoUploader({
 
     loadImages();
   }, [
-    folder,
+    propertyId,
     supabase,
   ]);
 
-  /* -------------------------------------------------------
-     Upload
-  ------------------------------------------------------- */
+  /* ========================================================
+     UPLOAD
+  ======================================================== */
 
   async function handleFiles(
     event: ChangeEvent<HTMLInputElement>
@@ -187,11 +213,17 @@ export default function PhotoUploader({
     setUploading(true);
 
     const newlyUploaded:
-      UploadedImage[] = [];
+      DisplayImage[] = [];
 
     for (
-      const file of selectedFiles
+      let index = 0;
+      index <
+      selectedFiles.length;
+      index++
     ) {
+      const file =
+        selectedFiles[index];
+
       const extension =
         getExtension(
           file.type
@@ -200,21 +232,28 @@ export default function PhotoUploader({
       const filename =
         `${crypto.randomUUID()}.${extension}`;
 
-      const path =
+      const storagePath =
         `${folder}/${filename}`;
+
+      /* -----------------------------
+         Upload actual file
+      ----------------------------- */
 
       const {
         error: uploadError,
       } = await supabase.storage
-        .from("property-images")
+        .from(
+          "property-images"
+        )
         .upload(
-          path,
+          storagePath,
           file,
           {
             cacheControl:
               "3600",
 
-            upsert: false,
+            upsert:
+              false,
 
             contentType:
               file.type,
@@ -232,18 +271,113 @@ export default function PhotoUploader({
         );
 
         setUploading(false);
+
+        return;
+      }
+
+      /* -----------------------------
+         Create DB record
+      ----------------------------- */
+
+      const displayOrder =
+        images.length +
+        newlyUploaded.length;
+
+      const shouldBePrimary =
+        images.length === 0 &&
+        newlyUploaded.length === 0;
+
+      const {
+        data: imageRecord,
+        error: databaseError,
+      } = await supabase
+        .from(
+          "property_images"
+        )
+        .insert({
+          property_id:
+            propertyId,
+
+          storage_path:
+            storagePath,
+
+          alt_text:
+            null,
+
+          display_order:
+            displayOrder,
+
+          is_primary:
+            shouldBePrimary,
+        })
+        .select(
+          `
+            id,
+            property_id,
+            storage_path,
+            alt_text,
+            display_order,
+            is_primary,
+            created_at
+          `
+        )
+        .single();
+
+      if (
+        databaseError ||
+        !imageRecord
+      ) {
+        console.error(
+  "PROPERTY IMAGE DB ERROR:",
+  {
+    code:
+      databaseError?.code,
+
+    message:
+      databaseError?.message,
+
+    details:
+      databaseError?.details,
+
+    hint:
+      databaseError?.hint,
+  }
+);
+
+
+        // Storage succeeded but DB failed.
+        // Remove the orphan file.
+        await supabase.storage
+          .from(
+            "property-images"
+          )
+          .remove([
+            storagePath,
+          ]);
+
+        setError(
+          databaseError?.message ??
+            "Could not save image information."
+        );
+
+        setUploading(false);
+
         return;
       }
 
       const {
         data: publicData,
       } = supabase.storage
-        .from("property-images")
-        .getPublicUrl(path);
+        .from(
+          "property-images"
+        )
+        .getPublicUrl(
+          storagePath
+        );
 
       newlyUploaded.push({
-        name: filename,
-        path,
+        ...imageRecord,
+
         url:
           publicData.publicUrl,
       });
@@ -259,45 +393,132 @@ export default function PhotoUploader({
     setUploading(false);
   }
 
-  /* -------------------------------------------------------
-     Delete
-  ------------------------------------------------------- */
+  /* ========================================================
+     REMOVE IMAGE
+  ======================================================== */
 
   async function removeImage(
-    image: UploadedImage
+    image: DisplayImage
   ) {
     setError("");
 
-    const {
-      error: removeError,
-    } = await supabase.storage
-      .from("property-images")
-      .remove([
-        image.path,
-      ]);
+    /* -----------------------------
+       Remove DB row
+    ----------------------------- */
 
-    if (removeError) {
+    const {
+      error: databaseError,
+    } = await supabase
+      .from(
+        "property_images"
+      )
+      .delete()
+      .eq(
+        "id",
+        image.id
+      )
+      .eq(
+        "property_id",
+        propertyId
+      );
+
+    if (databaseError) {
       console.error(
-        "PHOTO DELETE ERROR:",
-        removeError
+        "IMAGE DB DELETE ERROR:",
+        databaseError
       );
 
       setError(
-        removeError.message
+        databaseError.message
       );
 
       return;
     }
 
+    /* -----------------------------
+       Remove actual Storage file
+    ----------------------------- */
+
+    const {
+      error: storageError,
+    } = await supabase.storage
+      .from(
+        "property-images"
+      )
+      .remove([
+        image.storage_path,
+      ]);
+
+    if (storageError) {
+      console.error(
+        "IMAGE STORAGE DELETE ERROR:",
+        storageError
+      );
+
+      setError(
+        "The image record was removed, but the stored file could not be deleted."
+      );
+    }
+
+    const remainingImages =
+      images.filter(
+        (item) =>
+          item.id !==
+          image.id
+      );
+
     setImages(
-      (current) =>
-        current.filter(
-          (item) =>
-            item.path !==
-            image.path
-        )
+      remainingImages
     );
+
+    /*
+      If the primary image was removed,
+      make the next photo primary.
+    */
+    if (
+      image.is_primary &&
+      remainingImages.length > 0
+    ) {
+      const nextPrimary =
+        remainingImages[0];
+
+      const {
+        error: primaryError,
+      } = await supabase
+        .from(
+          "property_images"
+        )
+        .update({
+          is_primary:
+            true,
+        })
+        .eq(
+          "id",
+          nextPrimary.id
+        );
+
+      if (!primaryError) {
+        setImages(
+          (current) =>
+            current.map(
+              (item) =>
+                item.id ===
+                nextPrimary.id
+                  ? {
+                      ...item,
+                      is_primary:
+                        true,
+                    }
+                  : item
+            )
+        );
+      }
+    }
   }
+
+  /* ========================================================
+     UI
+  ======================================================== */
 
   return (
     <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -308,9 +529,8 @@ export default function PhotoUploader({
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Add up to five JPG, PNG
-            or WebP photos. Maximum
-            size is 5 MB per image.
+            Add up to five clear
+            property photos.
           </p>
         </div>
 
@@ -332,31 +552,36 @@ export default function PhotoUploader({
         </div>
       ) : (
         <>
-          {images.length > 0 && (
+          {images.length >
+            0 && (
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {images.map(
-                (image, index) => (
+                (
+                  image,
+                  index
+                ) => (
                   <div
                     key={
-                      image.path
+                      image.id
                     }
-                    className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
                   >
                     <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                      {/* Using normal img avoids needing
-                          remote-image configuration during
-                          this storage checkpoint. */}
                       <img
                         src={
                           image.url
                         }
-                        alt={`Property photo ${
-                          index + 1
-                        }`}
+                        alt={
+                          image.alt_text ??
+                          `Property photo ${
+                            index +
+                            1
+                          }`
+                        }
                         className="h-full w-full object-cover"
                       />
 
-                      {index === 0 && (
+                      {image.is_primary && (
                         <span className="absolute left-3 top-3 rounded-full bg-slate-950/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
                           Cover photo
                         </span>
@@ -382,15 +607,16 @@ export default function PhotoUploader({
             </div>
           )}
 
-          {images.length === 0 && (
+          {images.length ===
+            0 && (
             <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
               <p className="font-semibold">
                 No property photos yet.
               </p>
 
               <p className="mt-2 text-sm text-slate-500">
-                Add your first image
-                below.
+                Add at least one
+                image before continuing.
               </p>
             </div>
           )}
@@ -428,28 +654,30 @@ export default function PhotoUploader({
       <div className="mt-8 border-t border-slate-100 pt-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <p className="max-w-lg text-xs leading-5 text-slate-400">
-            The first photo currently
-            acts as the cover photo.
-            We'll add reordering during
-            the final seller-workflow
-            polish.
+            The primary image will
+            become the property's
+            cover photo.
           </p>
 
           <Link
-            href="/dashboard?message=Property submitted for review."
+            href={`/sell/review?property=${encodeURIComponent(
+              propertyId
+            )}`}
             className={`rounded-full px-6 py-3 text-center text-sm font-semibold transition ${
-              images.length > 0
+              images.length >
+              0
                 ? "bg-slate-950 text-white hover:bg-slate-800"
                 : "pointer-events-none bg-slate-200 text-slate-400"
             }`}
           >
-            Continue
+            Continue to review
           </Link>
         </div>
       </div>
     </section>
   );
 }
+
 
 function getExtension(
   mimeType: string

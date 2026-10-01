@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-import {
+import type {
   InternetQuality,
   Property,
   PropertyType,
@@ -11,72 +11,139 @@ import {
   VerificationStatus,
 } from "@/types/property";
 
-type LocationRelation = {
+
+/* ============================================================
+   DATABASE TYPES
+============================================================ */
+
+type DatabaseLocation = {
   name: string;
   slug: string;
 };
 
-type VerificationRelation = {
-  seller_identity: string;
-  property_location: string;
-  photos: string;
-  ownership_evidence: string;
-  physical_inspection: string;
+
+type DatabaseVerification = {
+  seller_identity: string | null;
+  property_location: string | null;
+  photos: string | null;
+  ownership_evidence: string | null;
+  physical_inspection: string | null;
 };
 
-type PropertyRow = {
+
+type DatabasePropertyImage = {
+  id: string;
+  storage_path: string;
+  alt_text: string | null;
+  display_order: number;
+  is_primary: boolean;
+};
+
+
+type DatabasePropertyRow = {
   id: string;
 
   title: string;
+
   description: string;
 
   property_type: string;
 
-  price_pkr: number;
+  price_pkr:
+    | number
+    | string;
 
-  estimated_min_pkr: number | null;
-  estimated_max_pkr: number | null;
+  estimated_min_pkr:
+    | number
+    | string
+    | null;
 
-  area_value: number;
+  estimated_max_pkr:
+    | number
+    | string
+    | null;
+
+  area_value:
+    | number
+    | string;
+
   area_unit: string;
 
-  latitude: number | null;
-  longitude: number | null;
+  latitude:
+    | number
+    | string
+    | null;
+
+  longitude:
+    | number
+    | string
+    | null;
 
   road_access: boolean;
-  road_type: string | null;
-  distance_to_main_road_m: number | null;
+
+  road_type:
+    | string
+    | null;
+
+  distance_to_main_road_m:
+    | number
+    | null;
 
   water_available: boolean;
-  water_source: string | null;
+
+  water_source:
+    | string
+    | null;
 
   electricity_available: boolean;
+
   irrigation_available: boolean;
 
-  internet_quality: string | null;
+  internet_quality:
+    | string
+    | null;
 
-  terrain: string | null;
-  slope: string | null;
+  terrain:
+    | string
+    | null;
 
-  residential_suitability: string | null;
-  agricultural_suitability: string | null;
+  slope:
+    | string
+    | null;
 
-  seller_display_name: string | null;
+  residential_suitability:
+    | string
+    | null;
+
+  agricultural_suitability:
+    | string
+    | null;
+
+  seller_display_name:
+    | string
+    | null;
 
   locations:
-    | LocationRelation
-    | LocationRelation[]
+    | DatabaseLocation
+    | DatabaseLocation[]
     | null;
 
   property_verifications:
-    | VerificationRelation
-    | VerificationRelation[]
+    | DatabaseVerification
+    | DatabaseVerification[]
+    | null;
+
+  property_images:
+    | DatabasePropertyImage[]
     | null;
 };
 
+
+/* ============================================================
+   SUPABASE SELECT
+============================================================ */
+
 const propertySelect = `
-  latitude,
-  longitude,
   id,
   title,
   description,
@@ -86,6 +153,8 @@ const propertySelect = `
   estimated_max_pkr,
   area_value,
   area_unit,
+  latitude,
+  longitude,
   road_access,
   road_type,
   distance_to_main_road_m,
@@ -99,29 +168,54 @@ const propertySelect = `
   residential_suitability,
   agricultural_suitability,
   seller_display_name,
+
   locations (
     name,
     slug
   ),
+
   property_verifications (
     seller_identity,
     property_location,
     photos,
     ownership_evidence,
     physical_inspection
+  ),
+
+  property_images (
+    id,
+    storage_path,
+    alt_text,
+    display_order,
+    is_primary
   )
 `;
 
-export async function getAllProperties(): Promise<Property[]> {
-  const supabase = await createClient();
 
-  const { data, error } = await supabase
+/* ============================================================
+   PUBLIC DATABASE FUNCTIONS
+============================================================ */
+
+export async function getAllProperties(): Promise<Property[]> {
+  const supabase =
+    await createClient();
+
+  const {
+    data,
+    error,
+  } = await supabase
     .from("properties")
     .select(propertySelect)
-    .eq("listing_status", "active")
-    .order("created_at", {
-      ascending: false,
-    });
+    .eq(
+      "listing_status",
+      "active"
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false,
+      }
+    );
 
   if (error) {
     throw new Error(
@@ -129,21 +223,36 @@ export async function getAllProperties(): Promise<Property[]> {
     );
   }
 
-  return (data ?? []).map((row) =>
-    mapProperty(row as unknown as PropertyRow)
+  return (data ?? []).map(
+    (row) =>
+      mapProperty(
+        row as unknown as DatabasePropertyRow,
+        supabase
+      )
   );
 }
+
 
 export async function getPropertyById(
   id: string
 ): Promise<Property | null> {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from("properties")
     .select(propertySelect)
-    .eq("id", id)
-    .eq("listing_status", "active")
+    .eq(
+      "id",
+      id
+    )
+    .eq(
+      "listing_status",
+      "active"
+    )
     .maybeSingle();
 
   if (error) {
@@ -157,85 +266,163 @@ export async function getPropertyById(
   }
 
   return mapProperty(
-    data as unknown as PropertyRow
+    data as unknown as DatabasePropertyRow,
+    supabase
   );
 }
 
+
+/* ============================================================
+   PROPERTY MAPPER
+============================================================ */
+
 function mapProperty(
-  row: PropertyRow
+  row: DatabasePropertyRow,
+  supabase: Awaited<
+    ReturnType<typeof createClient>
+  >
 ): Property {
-  const location = firstRelation(
-    row.locations
-  );
+  const location =
+    firstRelation(
+      row.locations
+    );
 
-  const verification = firstRelation(
-    row.property_verifications
-  );
+  const verification =
+    firstRelation(
+      row.property_verifications
+    );
 
-  const pricePkr = Number(row.price_pkr);
+  const pricePkr =
+    toNumber(
+      row.price_pkr
+    );
 
   const estimatedMin =
-    row.estimated_min_pkr === null
-      ? null
-      : Number(row.estimated_min_pkr);
+    toNullableNumber(
+      row.estimated_min_pkr
+    );
 
   const estimatedMax =
-    row.estimated_max_pkr === null
-      ? null
-      : Number(row.estimated_max_pkr);
+    toNullableNumber(
+      row.estimated_max_pkr
+    );
+
+  /*
+    Sort photos by display_order before
+    turning them into frontend images.
+  */
+  const databaseImages =
+    [...(
+      row.property_images ??
+      []
+    )].sort(
+      (a, b) =>
+        a.display_order -
+        b.display_order
+    );
+
+  const images =
+    databaseImages.map(
+      (image) => {
+        const {
+          data: publicData,
+        } = supabase.storage
+          .from(
+            "property-images"
+          )
+          .getPublicUrl(
+            image.storage_path
+          );
+
+        return {
+          id:
+            image.id,
+
+          storagePath:
+            image.storage_path,
+
+          altText:
+            image.alt_text,
+
+          displayOrder:
+            image.display_order,
+
+          isPrimary:
+            image.is_primary,
+
+          url:
+            publicData.publicUrl,
+        };
+      }
+    );
 
   return {
-    id: row.id,
+    id:
+      row.id,
 
-    price: formatPrice(pricePkr),
+    price:
+      formatPrice(
+        pricePkr
+      ),
+
     pricePkr,
 
-    estimate: formatEstimate(
-      estimatedMin,
-      estimatedMax
-    ),
+    estimate:
+      formatEstimate(
+        estimatedMin,
+        estimatedMax
+      ),
 
-    title: row.title,
+    title:
+      row.title,
 
     location:
-      location?.name ?? "Chitral",
+      location?.name ??
+      "Chitral",
 
     locationSlug:
-      location?.slug ?? "chitral",
+      location?.slug ??
+      "",
 
     latitude:
-    row.latitude === null
-    ? null
-    : Number(row.latitude),
+      toNullableNumber(
+        row.latitude
+      ),
 
     longitude:
-    row.longitude === null
-    ? null
-    : Number(row.longitude),
+      toNullableNumber(
+        row.longitude
+      ),
 
-    size: formatArea(
-      Number(row.area_value),
-      row.area_unit
-    ),
+    size:
+      formatArea(
+        row.area_value,
+        row.area_unit
+      ),
 
-    type: mapPropertyType(
-      row.property_type
-    ),
+    type:
+      mapPropertyType(
+        row.property_type
+      ),
 
-    gradient: getPropertyGradient(
-      row.id
-    ),
+    gradient:
+      getPropertyGradient(
+        row.id
+      ),
 
-    description: row.description,
+    description:
+      row.description,
 
-    roadAccess: row.road_access,
+    roadAccess:
+      row.road_access,
 
     roadType:
       row.road_type ??
       "Not specified",
 
     distanceToMainRoadM:
-      row.distance_to_main_road_m ?? 0,
+      row.distance_to_main_road_m ??
+      0,
 
     waterAvailable:
       row.water_available,
@@ -256,10 +443,14 @@ function mapProperty(
       ),
 
     terrain:
-      mapTerrain(row.terrain),
+      mapTerrain(
+        row.terrain
+      ),
 
     slope:
-      mapSlope(row.slope),
+      mapSlope(
+        row.slope
+      ),
 
     residentialSuitability:
       mapSuitability(
@@ -273,188 +464,329 @@ function mapProperty(
 
     sellerName:
       row.seller_display_name ??
-      "Property seller",
+      "Seller",
 
     verification:
-      mapVerification(verification),
+      mapVerification(
+        verification
+      ),
+
+    images,
   };
 }
 
+
+/* ============================================================
+   RELATION HELPERS
+============================================================ */
+
 function firstRelation<T>(
-  value: T | T[] | null
+  relation:
+    | T
+    | T[]
+    | null
+    | undefined
 ): T | null {
-  if (!value) {
+  if (!relation) {
     return null;
   }
 
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
+  if (
+    Array.isArray(
+      relation
+    )
+  ) {
+    return (
+      relation[0] ??
+      null
+    );
   }
 
-  return value;
+  return relation;
 }
 
+
+/* ============================================================
+   NUMBER HELPERS
+============================================================ */
+
+function toNumber(
+  value:
+    | number
+    | string
+): number {
+  const number =
+    Number(value);
+
+  if (
+    !Number.isFinite(
+      number
+    )
+  ) {
+    return 0;
+  }
+
+  return number;
+}
+
+
+function toNullableNumber(
+  value:
+    | number
+    | string
+    | null
+    | undefined
+): number | null {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return null;
+  }
+
+  const number =
+    Number(value);
+
+  if (
+    !Number.isFinite(
+      number
+    )
+  ) {
+    return null;
+  }
+
+  return number;
+}
+
+
+/* ============================================================
+   PRICE FORMATTING
+============================================================ */
+
 function formatPrice(
-  pricePkr: number
+  value: number
 ): string {
-  if (pricePkr >= 10_000_000) {
-    return `PKR ${formatNumber(
-      pricePkr / 10_000_000
+  if (
+    value >=
+    10_000_000
+  ) {
+    return `PKR ${formatDecimal(
+      value /
+        10_000_000
     )} Crore`;
   }
 
-  if (pricePkr >= 100_000) {
-    return `PKR ${formatNumber(
-      pricePkr / 100_000
+  if (
+    value >=
+    100_000
+  ) {
+    return `PKR ${formatDecimal(
+      value /
+        100_000
     )} Lakh`;
   }
 
-  return `PKR ${pricePkr.toLocaleString()}`;
+  return `PKR ${value.toLocaleString()}`;
 }
 
+
 function formatEstimate(
-  min: number | null,
-  max: number | null
+  minimum:
+    | number
+    | null,
+  maximum:
+    | number
+    | null
 ): string {
-  if (min === null || max === null) {
+  if (
+    minimum === null ||
+    maximum === null
+  ) {
     return "Not available";
   }
 
   if (
-    min >= 10_000_000 &&
-    max >= 10_000_000
+    minimum >=
+      10_000_000 &&
+    maximum >=
+      10_000_000
   ) {
-    return `${formatNumber(
-      min / 10_000_000
-    )}–${formatNumber(
-      max / 10_000_000
+    return `PKR ${formatDecimal(
+      minimum /
+        10_000_000
+    )}–${formatDecimal(
+      maximum /
+        10_000_000
     )} Crore`;
   }
 
-  return `${formatNumber(
-    min / 100_000
-  )}–${formatNumber(
-    max / 100_000
-  )} Lakh`;
+  if (
+    minimum >=
+      100_000 &&
+    maximum >=
+      100_000
+  ) {
+    return `PKR ${formatDecimal(
+      minimum /
+        100_000
+    )}–${formatDecimal(
+      maximum /
+        100_000
+    )} Lakh`;
+  }
+
+  return `PKR ${minimum.toLocaleString()}–${maximum.toLocaleString()}`;
 }
 
-function formatArea(
-  value: number,
-  unit: string
-): string {
-  const displayValue =
-    formatNumber(value);
 
-  if (unit === "marla") {
-    return `${displayValue} Marla`;
-  }
-
-  if (unit === "kanal") {
-    return `${displayValue} Kanal`;
-  }
-
-  if (unit === "sq_ft") {
-    return `${displayValue} sq ft`;
-  }
-
-  return `${displayValue} ${unit}`;
-}
-
-function formatNumber(
+function formatDecimal(
   value: number
 ): string {
-  return Number.isInteger(value)
-    ? value.toString()
-    : value.toFixed(1);
+  return value.toLocaleString(
+    "en-US",
+    {
+      maximumFractionDigits:
+        2,
+    }
+  );
 }
+
+
+/* ============================================================
+   AREA FORMATTING
+============================================================ */
+
+function formatArea(
+  value:
+    | number
+    | string,
+  unit: string
+): string {
+  const numericValue =
+    toNumber(value);
+
+  const formatted =
+    numericValue.toLocaleString(
+      "en-US",
+      {
+        maximumFractionDigits:
+          2,
+      }
+    );
+
+  switch (unit) {
+    case "kanal":
+      return `${formatted} Kanal`;
+
+    case "sq_ft":
+      return `${formatted} sq ft`;
+
+    default:
+      return `${formatted} Marla`;
+  }
+}
+
+
+/* ============================================================
+   PROPERTY ENUM MAPPERS
+============================================================ */
 
 function mapPropertyType(
   value: string
 ): PropertyType {
-  if (value === "agricultural") {
-    return "Agricultural";
-  }
+  switch (value) {
+    case "agricultural":
+      return "Agricultural";
 
-  if (value === "commercial") {
-    return "Commercial";
-  }
+    case "commercial":
+      return "Commercial";
 
-  return "Residential";
+    default:
+      return "Residential";
+  }
 }
+
 
 function mapInternetQuality(
-  value: string | null
+  value:
+    | string
+    | null
 ): InternetQuality {
-  if (value === "poor") {
-    return "Poor";
-  }
+  switch (value) {
+    case "poor":
+      return "Poor";
 
-  if (value === "fair") {
-    return "Fair";
-  }
+    case "fair":
+      return "Fair";
 
-  return "Good";
+    default:
+      return "Good";
+  }
 }
+
 
 function mapTerrain(
-  value: string | null
+  value:
+    | string
+    | null
 ): Terrain {
-  if (value === "mixed") {
-    return "Mixed";
-  }
+  switch (value) {
+    case "mixed":
+      return "Mixed";
 
-  if (value === "sloped") {
-    return "Sloped";
-  }
+    case "sloped":
+      return "Sloped";
 
-  return "Flat";
+    default:
+      return "Flat";
+  }
 }
+
 
 function mapSlope(
-  value: string | null
+  value:
+    | string
+    | null
 ): Slope {
-  if (value === "moderate") {
-    return "Moderate";
-  }
+  switch (value) {
+    case "moderate":
+      return "Moderate";
 
-  if (value === "steep") {
-    return "Steep";
-  }
+    case "steep":
+      return "Steep";
 
-  return "Low";
+    default:
+      return "Low";
+  }
 }
+
 
 function mapSuitability(
-  value: string | null
+  value:
+    | string
+    | null
 ): Suitability {
-  if (value === "low") {
-    return "Low";
-  }
+  switch (value) {
+    case "low":
+      return "Low";
 
-  if (value === "moderate") {
-    return "Moderate";
-  }
+    case "moderate":
+      return "Moderate";
 
-  return "High";
+    default:
+      return "High";
+  }
 }
 
-function mapVerificationStatus(
-  value: string | undefined
-): VerificationStatus {
-  if (value === "verified") {
-    return "verified";
-  }
 
-  if (value === "pending") {
-    return "pending";
-  }
-
-  return "not-checked";
-}
+/* ============================================================
+   VERIFICATION
+============================================================ */
 
 function mapVerification(
   verification:
-    | VerificationRelation
+    | DatabaseVerification
     | null
 ): PropertyVerification {
   return {
@@ -485,25 +817,68 @@ function mapVerification(
   };
 }
 
+
+function mapVerificationStatus(
+  value:
+    | string
+    | null
+    | undefined
+): VerificationStatus {
+  if (
+    value ===
+    "verified"
+  ) {
+    return "verified";
+  }
+
+  if (
+    value ===
+    "pending"
+  ) {
+    return "pending";
+  }
+
+  return "not-checked";
+}
+
+
+/* ============================================================
+   FALLBACK CARD GRADIENT
+============================================================ */
+
+const propertyGradients = [
+  "from-emerald-100 via-teal-100 to-slate-200",
+
+  "from-sky-100 via-slate-100 to-indigo-100",
+
+  "from-lime-100 via-emerald-100 to-slate-100",
+
+  "from-orange-100 via-amber-50 to-slate-200",
+
+  "from-cyan-100 via-sky-100 to-slate-200",
+
+  "from-violet-100 via-slate-100 to-pink-100",
+];
+
+
 function getPropertyGradient(
   id: string
 ): string {
-  const gradients = [
-    "from-emerald-100 via-teal-100 to-slate-200",
-    "from-sky-100 via-slate-100 to-indigo-100",
-    "from-lime-100 via-emerald-100 to-slate-100",
-    "from-orange-100 via-amber-50 to-slate-200",
-    "from-cyan-100 via-sky-100 to-slate-200",
-    "from-violet-100 via-slate-100 to-pink-100",
-  ];
+  const hash =
+    [...id].reduce(
+      (
+        total,
+        character
+      ) =>
+        total +
+        character.charCodeAt(
+          0
+        ),
+      0
+    );
 
-  let hash = 0;
-
-  for (let index = 0; index < id.length; index++) {
-    hash += id.charCodeAt(index);
-  }
-
-  return gradients[
-    hash % gradients.length
+  return propertyGradients[
+    hash %
+      propertyGradients.length
   ];
 }

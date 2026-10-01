@@ -1,4 +1,5 @@
 export type PropertyType =
+
   | "Residential"
   | "Agricultural"
   | "Commercial";
@@ -36,7 +37,17 @@ export type PropertyVerification = {
   physicalInspection: VerificationStatus;
 };
 
+export type PropertyImage = {
+  id: string;
+  storagePath: string;
+  altText: string | null;
+  displayOrder: number;
+  isPrimary: boolean;
+  url: string;
+};
+
 export type Property = {
+  
   id: string;
 
   price: string;
@@ -80,4 +91,6 @@ export type Property = {
   sellerName: string;
 
   verification: PropertyVerification;
+  images: PropertyImage[];
 };
+

@@ -177,7 +177,8 @@ export async function createListing(formData: FormData) {
 
       property_type: propertyType,
 
-      listing_status: "pending_review",
+      listing_status:
+  "draft",
 
       price_pkr: Math.round(pricePkr),
 
@@ -223,6 +224,139 @@ export async function createListing(formData: FormData) {
   revalidatePath("/dashboard");
 
   redirect(`/sell/photos?property=${encodeURIComponent(propertyId)}`);
+}
+
+export async function submitListingForReview(
+  formData: FormData
+) {
+  const propertyId = String(
+    formData.get("propertyId") ?? ""
+  ).trim();
+
+  if (!propertyId) {
+    redirect("/dashboard");
+  }
+
+  const supabase =
+    await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+
+
+  // Confirm the property belongs to this seller
+  // and is still editable.
+  const {
+    data: property,
+    error: propertyError,
+  } = await supabase
+    .from("properties")
+    .select(
+      `
+        id,
+        seller_id,
+        listing_status
+      `
+    )
+    .eq("id", propertyId)
+    .eq("seller_id", user.id)
+    .maybeSingle();
+
+  const {
+  count: imageCount,
+  error: imageCountError,
+} = await supabase
+  .from("property_images")
+  .select("id", {
+    count: "exact",
+    head: true,
+  })
+  .eq("property_id", propertyId);
+
+if (imageCountError) {
+  console.error(
+    "IMAGE COUNT ERROR:",
+    imageCountError
+  );
+
+  redirect(
+    `/sell/review?property=${encodeURIComponent(
+      propertyId
+    )}&error=${encodeURIComponent(
+      "Could not verify property photos."
+    )}`
+  );
+}
+
+if (!imageCount || imageCount < 1) {
+  redirect(
+    `/sell/photos?property=${encodeURIComponent(
+      propertyId
+    )}`
+  );
+}
+
+  if (
+    propertyError ||
+    !property
+  ) {
+    redirect(
+      "/dashboard?error=Property not found."
+    );
+  }
+
+  if (
+    ![
+      "draft",
+      "rejected",
+    ].includes(
+      property.listing_status
+    )
+  ) {
+    redirect(
+      "/dashboard?error=This property cannot be submitted in its current state."
+    );
+  }
+
+  const {
+    error: updateError,
+  } = await supabase
+    .from("properties")
+    .update({
+      listing_status:
+        "pending_review",
+    })
+    .eq("id", propertyId)
+    .eq("seller_id", user.id);
+
+  if (updateError) {
+    console.error(
+      "SUBMIT LISTING ERROR:",
+      updateError
+    );
+
+    redirect(
+      `/sell/review?property=${encodeURIComponent(
+        propertyId
+      )}&error=${encodeURIComponent(
+        updateError.message
+      )}`
+    );
+  }
+
+  revalidatePath(
+    "/dashboard"
+  );
+
+  redirect(
+    "/dashboard?message=Property submitted for review."
+  );
 }
 
 /* ============================================================

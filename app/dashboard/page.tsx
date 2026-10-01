@@ -80,6 +80,13 @@ export default async function DashboardPage({
         "pending_review"
     ).length;
 
+  const draftCount =
+  listings.filter(
+    (property) =>
+      property.listing_status ===
+      "draft"
+  ).length;
+
   const activeCount =
     listings.filter(
       (property) =>
@@ -219,6 +226,7 @@ export default async function DashboardPage({
           ) : (
             <div className="mt-8 space-y-3">
               {listings.map(
+
                 (property) => (
                   <div
                     key={
@@ -246,6 +254,18 @@ export default async function DashboardPage({
                         ).toLocaleString()}
                       </p>
                     </div>
+
+                    {property.listing_status ===
+  "draft" && (
+  <Link
+    href={`/sell/photos?property=${encodeURIComponent(
+      property.id
+    )}`}
+    className="mt-3 inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+  >
+    Continue listing →
+  </Link>
+)}
 
                     <p className="text-xs text-slate-400">
                       {new Date(
