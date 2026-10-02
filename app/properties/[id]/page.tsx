@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import MLValuationCard from "@/components/MLValuationCard";
+
 import Navbar from "@/components/Navbar";
 import PropertyPassport from "@/components/PropertyPassport";
 
@@ -384,6 +386,10 @@ export default async function PropertyPage({
                   }%`}
                 />
               </div>
+
+              <MLValuationCard
+  property={property}
+/>
 
 
               {/* FACTORS */}
