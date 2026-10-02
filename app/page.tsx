@@ -2,6 +2,8 @@ import Navbar from "@/components/Navbar";
 import LocationSection from "@/components/LocationSection";
 import Link from "next/link";
 
+import HomeSearchForm from "@/components/HomeSearchForm";
+
 import {
   getAllProperties,
 } from "@/lib/properties";
@@ -69,9 +71,7 @@ export default async function Home() {
                   />
                 </div>
 
-                <button className="rounded-2xl bg-slate-950 px-7 py-4 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800">
-                  Search properties
-                </button>
+                <HomeSearchForm />
               </div>
 
               <div className="flex flex-wrap gap-2 px-1 pb-1 pt-3">
