@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { calculateValuation } from "@/lib/valuation";
 
 import type {
   InternetQuality,
@@ -44,7 +45,6 @@ type DatabasePropertyRow = {
   id: string;
 
   title: string;
-
   description: string;
 
   property_type: string;
@@ -52,16 +52,6 @@ type DatabasePropertyRow = {
   price_pkr:
     | number
     | string;
-
-  estimated_min_pkr:
-    | number
-    | string
-    | null;
-
-  estimated_max_pkr:
-    | number
-    | string
-    | null;
 
   area_value:
     | number
@@ -140,7 +130,7 @@ type DatabasePropertyRow = {
 
 
 /* ============================================================
-   SUPABASE SELECT
+   SHARED SELECT
 ============================================================ */
 
 const propertySelect = `
@@ -149,24 +139,28 @@ const propertySelect = `
   description,
   property_type,
   price_pkr,
-  estimated_min_pkr,
-  estimated_max_pkr,
   area_value,
   area_unit,
+
   latitude,
   longitude,
+
   road_access,
   road_type,
   distance_to_main_road_m,
+
   water_available,
   water_source,
   electricity_available,
   irrigation_available,
+
   internet_quality,
   terrain,
   slope,
+
   residential_suitability,
   agricultural_suitability,
+
   seller_display_name,
 
   locations (
@@ -193,10 +187,12 @@ const propertySelect = `
 
 
 /* ============================================================
-   PUBLIC DATABASE FUNCTIONS
+   GET ALL PUBLIC PROPERTIES
 ============================================================ */
 
-export async function getAllProperties(): Promise<Property[]> {
+export async function getAllProperties(): Promise<
+  Property[]
+> {
   const supabase =
     await createClient();
 
@@ -218,6 +214,11 @@ export async function getAllProperties(): Promise<Property[]> {
     );
 
   if (error) {
+    console.error(
+      "GET ALL PROPERTIES ERROR:",
+      error
+    );
+
     throw new Error(
       `Failed to load properties: ${error.message}`
     );
@@ -232,6 +233,10 @@ export async function getAllProperties(): Promise<Property[]> {
   );
 }
 
+
+/* ============================================================
+   GET ONE PUBLIC PROPERTY
+============================================================ */
 
 export async function getPropertyById(
   id: string
@@ -256,6 +261,11 @@ export async function getPropertyById(
     .maybeSingle();
 
   if (error) {
+    console.error(
+      "GET PROPERTY ERROR:",
+      error
+    );
+
     throw new Error(
       `Failed to load property: ${error.message}`
     );
@@ -273,7 +283,7 @@ export async function getPropertyById(
 
 
 /* ============================================================
-   PROPERTY MAPPER
+   DATABASE -> FRONTEND PROPERTY
 ============================================================ */
 
 function mapProperty(
@@ -287,9 +297,14 @@ function mapProperty(
       row.locations
     );
 
-  const verification =
+  const verificationRow =
     firstRelation(
       row.property_verifications
+    );
+
+  const verification =
+    mapVerification(
+      verificationRow
     );
 
   const pricePkr =
@@ -297,28 +312,125 @@ function mapProperty(
       row.price_pkr
     );
 
-  const estimatedMin =
-    toNullableNumber(
-      row.estimated_min_pkr
+  const areaValue =
+    toNumber(
+      row.area_value
     );
 
-  const estimatedMax =
+  const latitude =
     toNullableNumber(
-      row.estimated_max_pkr
+      row.latitude
     );
 
-  /*
-    Sort photos by display_order before
-    turning them into frontend images.
-  */
+  const longitude =
+    toNullableNumber(
+      row.longitude
+    );
+
+
+  /* ========================================================
+     EXPLAINABLE VALUATION
+  ======================================================== */
+
+  const valuation =
+    calculateValuation({
+      locationSlug:
+        location?.slug ??
+        "",
+
+      propertyType:
+        normalizePropertyType(
+          row.property_type
+        ),
+
+      areaValue,
+
+      areaUnit:
+        normalizeAreaUnit(
+          row.area_unit
+        ),
+
+      roadAccess:
+        row.road_access,
+
+      distanceToMainRoadM:
+        row.distance_to_main_road_m,
+
+      waterAvailable:
+        row.water_available,
+
+      electricityAvailable:
+        row.electricity_available,
+
+      irrigationAvailable:
+        row.irrigation_available,
+
+      internetQuality:
+        normalizeInternetQuality(
+          row.internet_quality
+        ),
+
+      terrain:
+        normalizeTerrain(
+          row.terrain
+        ),
+
+      slope:
+        normalizeSlope(
+          row.slope
+        ),
+
+      residentialSuitability:
+        normalizeSuitability(
+          row.residential_suitability
+        ),
+
+      agriculturalSuitability:
+        normalizeSuitability(
+          row.agricultural_suitability
+        ),
+
+      verification: {
+        sellerIdentity:
+          verificationRow
+            ?.seller_identity,
+
+        propertyLocation:
+          verificationRow
+            ?.property_location,
+
+        photos:
+          verificationRow
+            ?.photos,
+
+        ownershipEvidence:
+          verificationRow
+            ?.ownership_evidence,
+
+        physicalInspection:
+          verificationRow
+            ?.physical_inspection,
+      },
+    });
+
+
+  /* ========================================================
+     PROPERTY IMAGES
+  ======================================================== */
+
   const databaseImages =
-    [...(
-      row.property_images ??
-      []
-    )].sort(
-      (a, b) =>
-        a.display_order -
-        b.display_order
+    [
+      ...(
+        row.property_images ??
+        []
+      ),
+    ].sort(
+      (
+        first,
+        second
+      ) =>
+        first.display_order -
+        second.display_order
     );
 
   const images =
@@ -356,9 +468,20 @@ function mapProperty(
       }
     );
 
+
+  /* ========================================================
+     FINAL FRONTEND OBJECT
+  ======================================================== */
+
   return {
     id:
       row.id,
+
+    title:
+      row.title,
+
+    description:
+      row.description,
 
     price:
       formatPrice(
@@ -369,12 +492,11 @@ function mapProperty(
 
     estimate:
       formatEstimate(
-        estimatedMin,
-        estimatedMax
+        valuation.estimatedMinPkr,
+        valuation.estimatedMaxPkr
       ),
 
-    title:
-      row.title,
+    valuation,
 
     location:
       location?.name ??
@@ -384,19 +506,13 @@ function mapProperty(
       location?.slug ??
       "",
 
-    latitude:
-      toNullableNumber(
-        row.latitude
-      ),
+    latitude,
 
-    longitude:
-      toNullableNumber(
-        row.longitude
-      ),
+    longitude,
 
     size:
       formatArea(
-        row.area_value,
+        areaValue,
         row.area_unit
       ),
 
@@ -409,9 +525,6 @@ function mapProperty(
       getPropertyGradient(
         row.id
       ),
-
-    description:
-      row.description,
 
     roadAccess:
       row.road_access,
@@ -466,10 +579,7 @@ function mapProperty(
       row.seller_display_name ??
       "Seller",
 
-    verification:
-      mapVerification(
-        verification
-      ),
+    verification,
 
     images,
   };
@@ -477,7 +587,7 @@ function mapProperty(
 
 
 /* ============================================================
-   RELATION HELPERS
+   RELATION HELPER
 ============================================================ */
 
 function firstRelation<T>(
@@ -515,18 +625,18 @@ function toNumber(
     | number
     | string
 ): number {
-  const number =
+  const parsed =
     Number(value);
 
   if (
     !Number.isFinite(
-      number
+      parsed
     )
   ) {
     return 0;
   }
 
-  return number;
+  return parsed;
 }
 
 
@@ -545,23 +655,23 @@ function toNullableNumber(
     return null;
   }
 
-  const number =
+  const parsed =
     Number(value);
 
   if (
     !Number.isFinite(
-      number
+      parsed
     )
   ) {
     return null;
   }
 
-  return number;
+  return parsed;
 }
 
 
 /* ============================================================
-   PRICE FORMATTING
+   DISPLAY PRICE
 ============================================================ */
 
 function formatPrice(
@@ -592,20 +702,9 @@ function formatPrice(
 
 
 function formatEstimate(
-  minimum:
-    | number
-    | null,
-  maximum:
-    | number
-    | null
+  minimum: number,
+  maximum: number
 ): string {
-  if (
-    minimum === null ||
-    maximum === null
-  ) {
-    return "Not available";
-  }
-
   if (
     minimum >=
       10_000_000 &&
@@ -654,20 +753,15 @@ function formatDecimal(
 
 
 /* ============================================================
-   AREA FORMATTING
+   AREA DISPLAY
 ============================================================ */
 
 function formatArea(
-  value:
-    | number
-    | string,
+  value: number,
   unit: string
 ): string {
-  const numericValue =
-    toNumber(value);
-
   const formatted =
-    numericValue.toLocaleString(
+    value.toLocaleString(
       "en-US",
       {
         maximumFractionDigits:
@@ -689,7 +783,7 @@ function formatArea(
 
 
 /* ============================================================
-   PROPERTY ENUM MAPPERS
+   FRONTEND ENUM MAPPERS
 ============================================================ */
 
 function mapPropertyType(
@@ -781,6 +875,133 @@ function mapSuitability(
 
 
 /* ============================================================
+   VALUATION NORMALIZERS
+============================================================ */
+
+function normalizePropertyType(
+  value: string
+):
+  | "residential"
+  | "agricultural"
+  | "commercial" {
+  if (
+    value ===
+      "agricultural" ||
+    value ===
+      "commercial"
+  ) {
+    return value;
+  }
+
+  return "residential";
+}
+
+
+function normalizeAreaUnit(
+  value: string
+):
+  | "marla"
+  | "kanal"
+  | "sq_ft" {
+  if (
+    value ===
+      "kanal" ||
+    value ===
+      "sq_ft"
+  ) {
+    return value;
+  }
+
+  return "marla";
+}
+
+
+function normalizeInternetQuality(
+  value:
+    | string
+    | null
+):
+  | "poor"
+  | "fair"
+  | "good"
+  | null {
+  if (
+    value === "poor" ||
+    value === "fair" ||
+    value === "good"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+
+function normalizeTerrain(
+  value:
+    | string
+    | null
+):
+  | "flat"
+  | "mixed"
+  | "sloped"
+  | null {
+  if (
+    value === "flat" ||
+    value === "mixed" ||
+    value === "sloped"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+
+function normalizeSlope(
+  value:
+    | string
+    | null
+):
+  | "low"
+  | "moderate"
+  | "steep"
+  | null {
+  if (
+    value === "low" ||
+    value === "moderate" ||
+    value === "steep"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+
+function normalizeSuitability(
+  value:
+    | string
+    | null
+):
+  | "low"
+  | "moderate"
+  | "high"
+  | null {
+  if (
+    value === "low" ||
+    value ===
+      "moderate" ||
+    value === "high"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+
+/* ============================================================
    VERIFICATION
 ============================================================ */
 
@@ -792,12 +1013,14 @@ function mapVerification(
   return {
     sellerIdentity:
       mapVerificationStatus(
-        verification?.seller_identity
+        verification
+          ?.seller_identity
       ),
 
     location:
       mapVerificationStatus(
-        verification?.property_location
+        verification
+          ?.property_location
       ),
 
     photos:
@@ -807,12 +1030,14 @@ function mapVerification(
 
     ownershipEvidence:
       mapVerificationStatus(
-        verification?.ownership_evidence
+        verification
+          ?.ownership_evidence
       ),
 
     physicalInspection:
       mapVerificationStatus(
-        verification?.physical_inspection
+        verification
+          ?.physical_inspection
       ),
   };
 }
@@ -825,15 +1050,13 @@ function mapVerificationStatus(
     | undefined
 ): VerificationStatus {
   if (
-    value ===
-    "verified"
+    value === "verified"
   ) {
     return "verified";
   }
 
   if (
-    value ===
-    "pending"
+    value === "pending"
   ) {
     return "pending";
   }

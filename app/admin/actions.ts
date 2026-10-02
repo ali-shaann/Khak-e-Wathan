@@ -214,3 +214,145 @@ export async function rejectProperty(
     "/admin?message=Property returned to the seller."
   );
 }
+
+export async function updateVerification(
+  formData: FormData
+) {
+  const propertyId =
+    String(
+      formData.get("propertyId") ?? ""
+    ).trim();
+
+  if (!propertyId) {
+    redirect("/admin");
+  }
+
+  const sellerIdentity =
+    getVerificationStatus(
+      formData,
+      "sellerIdentity"
+    );
+
+  const propertyLocation =
+    getVerificationStatus(
+      formData,
+      "propertyLocation"
+    );
+
+  const photos =
+    getVerificationStatus(
+      formData,
+      "photos"
+    );
+
+  const ownershipEvidence =
+    getVerificationStatus(
+      formData,
+      "ownershipEvidence"
+    );
+
+  const physicalInspection =
+    getVerificationStatus(
+      formData,
+      "physicalInspection"
+    );
+
+  const {
+    supabase,
+  } = await requireAdmin();
+
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    "admin_update_property_verification",
+    {
+      p_property_id:
+        propertyId,
+
+      p_seller_identity:
+        sellerIdentity,
+
+      p_property_location:
+        propertyLocation,
+
+      p_photos:
+        photos,
+
+      p_ownership_evidence:
+        ownershipEvidence,
+
+      p_physical_inspection:
+        physicalInspection,
+    }
+  );
+
+  if (
+    error ||
+    data !== true
+  ) {
+    console.error(
+      "VERIFICATION UPDATE ERROR:",
+      {
+        message:
+          error?.message,
+
+        details:
+          error?.details,
+
+        hint:
+          error?.hint,
+      }
+    );
+
+    redirect(
+      `/admin/properties/${encodeURIComponent(
+        propertyId
+      )}?error=${encodeURIComponent(
+        error?.message ??
+          "Verification could not be updated."
+      )}`
+    );
+  }
+
+  revalidatePath(
+    `/admin/properties/${propertyId}`
+  );
+
+  revalidatePath(
+    `/properties/${propertyId}`
+  );
+
+  redirect(
+    `/admin/properties/${encodeURIComponent(
+      propertyId
+    )}?message=${encodeURIComponent(
+      "Verification updated."
+    )}`
+  );
+}
+
+
+/* ============================================================
+   VERIFICATION HELPER
+============================================================ */
+
+function getVerificationStatus(
+  formData: FormData,
+  key: string
+) {
+  const value =
+    String(
+      formData.get(key) ?? ""
+    ).trim();
+
+  if (
+    value === "verified" ||
+    value === "pending" ||
+    value === "not_checked"
+  ) {
+    return value;
+  }
+
+  return "not_checked";
+}

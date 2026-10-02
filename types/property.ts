@@ -1,4 +1,10 @@
+import type {
+  PropertyValuation,
+} from "@/types/valuation";
+
+
 export type PropertyType =
+
 
   | "Residential"
   | "Agricultural"
@@ -47,6 +53,8 @@ export type PropertyImage = {
 };
 
 export type Property = {
+
+  
   
   id: string;
 
@@ -54,6 +62,7 @@ export type Property = {
   pricePkr: number;
 
   estimate: string;
+  valuation: PropertyValuation;
 
   title: string;
 

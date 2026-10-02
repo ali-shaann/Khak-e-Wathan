@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   approveProperty,
   rejectProperty,
+  updateVerification,
 } from "@/app/admin/actions";
 
 
@@ -22,8 +23,10 @@ export default async function AdminPropertyPage({
   }>;
 
   searchParams: Promise<{
-    error?: string;
-  }>;
+  error?: string;
+  message?: string;
+}>;
+
 }) {
   const {
     id,
@@ -108,13 +111,23 @@ export default async function AdminPropertyPage({
         alt_text,
         display_order,
         is_primary
-      )
+      ),
+      property_verifications (
+  seller_identity,
+  property_location,
+  photos,
+  ownership_evidence,
+  physical_inspection,
+  updated_at
+)
+      
     `)
     .eq(
       "id",
       id
     )
     .maybeSingle();
+
 
   if (
     error ||
@@ -182,6 +195,50 @@ export default async function AdminPropertyPage({
       }
     );
 
+    type VerificationRow = {
+  seller_identity: string;
+  property_location: string;
+  photos: string;
+  ownership_evidence: string;
+  physical_inspection: string;
+  updated_at: string;
+};
+
+const verificationRelation =
+  property.property_verifications as
+    | VerificationRow
+    | VerificationRow[]
+    | null;
+
+const verification =
+  Array.isArray(
+    verificationRelation
+  )
+    ? verificationRelation[0] ??
+      null
+    : verificationRelation;
+const verificationValues = {
+  sellerIdentity:
+    verification?.seller_identity ??
+    "not_checked",
+
+  propertyLocation:
+    verification?.property_location ??
+    "not_checked",
+
+  photos:
+    verification?.photos ??
+    "not_checked",
+
+  ownershipEvidence:
+    verification?.ownership_evidence ??
+    "not_checked",
+
+  physicalInspection:
+    verification?.physical_inspection ??
+    "not_checked",
+};
+
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-slate-950">
       <Navbar />
@@ -194,11 +251,19 @@ export default async function AdminPropertyPage({
           ← Review queue
         </Link>
 
+        
+
         {query.error && (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {query.error}
           </div>
         )}
+
+        {query.message && (
+  <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">
+    {query.message}
+  </div>
+)}
 
         <div className="mt-8">
           <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-700">
@@ -284,6 +349,8 @@ export default async function AdminPropertyPage({
         )}
 
         {/* SUMMARY */}
+
+        
 
         <div className="mt-8 grid gap-5 lg:grid-cols-[1.5fr_0.8fr]">
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -437,14 +504,109 @@ export default async function AdminPropertyPage({
                 }
               />
             </div>
+
+            
           </section>
 
+                
+        
+
           {/* REVIEW PANEL */}
+        
+        <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+  <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+        Verification
+      </p>
+
+      <h2 className="mt-2 text-2xl font-bold">
+        Property verification checklist
+      </h2>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+        Record what has actually been checked.
+        Verification statuses will later appear in the
+        public Property Passport.
+      </p>
+    </div>
+
+    {verification?.updated_at && (
+      <p className="text-xs text-slate-400">
+        Updated{" "}
+        {new Date(
+          verification.updated_at
+        ).toLocaleString()}
+      </p>
+    )}
+  </div>
+
+  <form
+    action={updateVerification}
+    className="mt-8"
+  >
+    <input
+      type="hidden"
+      name="propertyId"
+      value={property.id}
+    />
+
+    <div className="grid gap-4 md:grid-cols-2">
+      <VerificationSelect
+        label="Seller identity"
+        name="sellerIdentity"
+        defaultValue={
+          verificationValues.sellerIdentity
+        }
+      />
+
+      <VerificationSelect
+        label="Property location"
+        name="propertyLocation"
+        defaultValue={
+          verificationValues.propertyLocation
+        }
+      />
+
+      <VerificationSelect
+        label="Photos"
+        name="photos"
+        defaultValue={
+          verificationValues.photos
+        }
+      />
+
+      <VerificationSelect
+        label="Ownership evidence"
+        name="ownershipEvidence"
+        defaultValue={
+          verificationValues.ownershipEvidence
+        }
+      />
+
+      <VerificationSelect
+        label="Physical inspection"
+        name="physicalInspection"
+        defaultValue={
+          verificationValues.physicalInspection
+        }
+      />
+    </div>
+
+    <button
+      type="submit"
+      className="mt-6 rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+    >
+      Save verification
+    </button>
+  </form>
+</section>
 
           <aside className="self-start rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
               Admin review
             </p>
+            
 
             <h2 className="mt-2 text-2xl font-bold">
               Review decision
@@ -504,13 +666,16 @@ export default async function AdminPropertyPage({
                 >
                   Reject listing
                 </button>
+                
               </form>
             ) : (
+                
               <div className="mt-6 rounded-2xl bg-white/[0.06] p-5 text-sm text-slate-300">
                 This listing has already
                 been reviewed.
               </div>
             )}
+            
           </aside>
         </div>
       </section>
@@ -518,6 +683,41 @@ export default async function AdminPropertyPage({
   );
 }
 
+function VerificationSelect({
+  label,
+  name,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+}) {
+  return (
+    <label className="block rounded-2xl bg-slate-50 p-4">
+      <span className="mb-3 block text-sm font-semibold text-slate-700">
+        {label}
+      </span>
+
+      <select
+        name={name}
+        defaultValue={defaultValue}
+        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400"
+      >
+        <option value="not_checked">
+          Not checked
+        </option>
+
+        <option value="pending">
+          Pending
+        </option>
+
+        <option value="verified">
+          Verified
+        </option>
+      </select>
+    </label>
+  );
+}
 
 function Field({
   label,
