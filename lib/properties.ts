@@ -534,8 +534,7 @@ function mapProperty(
       "Not specified",
 
     distanceToMainRoadM:
-      row.distance_to_main_road_m ??
-      0,
+      row.distance_to_main_road_m,
 
     waterAvailable:
       row.water_available,
@@ -806,7 +805,7 @@ function mapInternetQuality(
   value:
     | string
     | null
-): InternetQuality {
+): InternetQuality | null {
   switch (value) {
     case "poor":
       return "Poor";
@@ -814,8 +813,11 @@ function mapInternetQuality(
     case "fair":
       return "Fair";
 
-    default:
+    case "good":
       return "Good";
+
+    default:
+      return null;
   }
 }
 
@@ -824,8 +826,11 @@ function mapTerrain(
   value:
     | string
     | null
-): Terrain {
+): Terrain | null {
   switch (value) {
+    case "flat":
+      return "Flat";
+
     case "mixed":
       return "Mixed";
 
@@ -833,7 +838,7 @@ function mapTerrain(
       return "Sloped";
 
     default:
-      return "Flat";
+      return null;
   }
 }
 
@@ -842,8 +847,11 @@ function mapSlope(
   value:
     | string
     | null
-): Slope {
+): Slope | null {
   switch (value) {
+    case "low":
+      return "Low";
+
     case "moderate":
       return "Moderate";
 
@@ -851,7 +859,7 @@ function mapSlope(
       return "Steep";
 
     default:
-      return "Low";
+      return null;
   }
 }
 
@@ -860,7 +868,7 @@ function mapSuitability(
   value:
     | string
     | null
-): Suitability {
+): Suitability | null {
   switch (value) {
     case "low":
       return "Low";
@@ -868,8 +876,11 @@ function mapSuitability(
     case "moderate":
       return "Moderate";
 
-    default:
+    case "high":
       return "High";
+
+    default:
+      return null;
   }
 }
 

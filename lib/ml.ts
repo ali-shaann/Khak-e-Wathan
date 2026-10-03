@@ -25,9 +25,68 @@ type MlApiResponse = {
 };
 
 
+type MlReadyProperty =
+  Property & {
+    distanceToMainRoadM: number;
+
+    internetQuality:
+      NonNullable<
+        Property["internetQuality"]
+      >;
+
+    terrain:
+      NonNullable<
+        Property["terrain"]
+      >;
+
+    slope:
+      NonNullable<
+        Property["slope"]
+      >;
+
+    residentialSuitability:
+      NonNullable<
+        Property["residentialSuitability"]
+      >;
+
+    agriculturalSuitability:
+      NonNullable<
+        Property["agriculturalSuitability"]
+      >;
+  };
+
+
 const ML_API_URL =
   process.env.ML_API_URL ??
   "http://127.0.0.1:8000";
+
+
+const ML_REQUEST_TIMEOUT_MS =
+  6_000;
+
+
+/* ============================================================
+   MODEL INPUT READINESS
+============================================================ */
+
+export function hasCompleteMlFeatures(
+  property: Property
+): property is MlReadyProperty {
+  return (
+    property.distanceToMainRoadM !==
+      null &&
+    property.internetQuality !==
+      null &&
+    property.terrain !==
+      null &&
+    property.slope !==
+      null &&
+    property.residentialSuitability !==
+      null &&
+    property.agriculturalSuitability !==
+      null
+  );
+}
 
 
 /* ============================================================
@@ -37,6 +96,32 @@ const ML_API_URL =
 export async function getMlValuation(
   property: Property
 ): Promise<MlValuation | null> {
+  /*
+    The model was trained with complete structured features.
+    Do not invent optimistic values for fields the seller did
+    not provide.
+  */
+  if (
+    !hasCompleteMlFeatures(
+      property
+    )
+  ) {
+    return null;
+  }
+
+
+  const controller =
+    new AbortController();
+
+
+  const timeout =
+    setTimeout(
+      () =>
+        controller.abort(),
+      ML_REQUEST_TIMEOUT_MS
+    );
+
+
   try {
     const response =
       await fetch(
@@ -109,6 +194,9 @@ export async function getMlValuation(
           }),
 
           cache: "no-store",
+
+          signal:
+            controller.signal,
         }
       );
 
@@ -130,6 +218,19 @@ export async function getMlValuation(
       ) as MlApiResponse;
 
 
+    if (
+      !Number.isFinite(
+        data.predicted_price_pkr
+      )
+    ) {
+      console.error(
+        "ML API ERROR: invalid prediction response"
+      );
+
+      return null;
+    }
+
+
     return {
       predictedPricePkr:
         data.predicted_price_pkr,
@@ -146,7 +247,8 @@ export async function getMlValuation(
   } catch (error) {
     /*
       The marketplace should continue working even if
-      the separate Python service is temporarily offline.
+      the separate Python service is temporarily offline
+      or slow.
     */
 
     console.error(
@@ -155,6 +257,10 @@ export async function getMlValuation(
     );
 
     return null;
+  } finally {
+    clearTimeout(
+      timeout
+    );
   }
 }
 
@@ -183,7 +289,10 @@ function propertyTypeForModel(
 
 
 function internetForModel(
-  value: Property["internetQuality"]
+  value:
+    NonNullable<
+      Property["internetQuality"]
+    >
 ):
   | "poor"
   | "fair"
@@ -195,14 +304,17 @@ function internetForModel(
     case "Fair":
       return "fair";
 
-    default:
+    case "Good":
       return "good";
   }
 }
 
 
 function terrainForModel(
-  value: Property["terrain"]
+  value:
+    NonNullable<
+      Property["terrain"]
+    >
 ):
   | "flat"
   | "mixed"
@@ -214,14 +326,17 @@ function terrainForModel(
     case "Sloped":
       return "sloped";
 
-    default:
+    case "Flat":
       return "flat";
   }
 }
 
 
 function slopeForModel(
-  value: Property["slope"]
+  value:
+    NonNullable<
+      Property["slope"]
+    >
 ):
   | "low"
   | "moderate"
@@ -233,7 +348,7 @@ function slopeForModel(
     case "Steep":
       return "steep";
 
-    default:
+    case "Low":
       return "low";
   }
 }
@@ -241,10 +356,12 @@ function slopeForModel(
 
 function suitabilityForModel(
   value:
-    Property[
-      | "residentialSuitability"
-      | "agriculturalSuitability"
-    ]
+    NonNullable<
+      Property[
+        | "residentialSuitability"
+        | "agriculturalSuitability"
+      ]
+    >
 ):
   | "low"
   | "moderate"
@@ -256,7 +373,7 @@ function suitabilityForModel(
     case "Moderate":
       return "moderate";
 
-    default:
+    case "High":
       return "high";
   }
 }

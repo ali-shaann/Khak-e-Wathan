@@ -25,12 +25,12 @@ export default function NotFound() {
 
 
           <h1 className="mt-3 text-3xl font-bold tracking-[-0.03em] sm:text-4xl">
-            This part of Khak-e-Wathan isn&apos;t available yet.
+            We couldn&apos;t find that page.
           </h1>
 
 
           <p className="mx-auto mt-4 max-w-xl leading-7 text-slate-500">
-            The page may have moved, or the feature may still be under development.
+            The page may have moved or may no longer be available.
             You can continue exploring available properties instead.
           </p>
 

@@ -16,6 +16,10 @@ import {
   createClient,
 } from "@/lib/supabase/server";
 
+import {
+  CHITRAL_LIMITS,
+} from "@/components/map/mapConfig";
+
 
 /* ============================================================
    CREATE LISTING
@@ -157,11 +161,15 @@ export async function createListing(
     ) ||
     !isValidLongitude(
       longitude
+    ) ||
+    !isWithinChitral(
+      latitude,
+      longitude
     )
   ) {
     return {
       error:
-        "Please select the property location on the map.",
+        "Please select a property location within the Chitral map area.",
     };
   }
 
@@ -508,13 +516,17 @@ export async function updateListing(
       ) ||
       !isValidLongitude(
         newLongitude
+      ) ||
+      !isWithinChitral(
+        newLatitude,
+        newLongitude
       )
     ) {
       redirect(
         `/sell/edit/${encodeURIComponent(
           propertyId
         )}?error=${encodeURIComponent(
-          "Please choose a valid property location."
+          "Please choose a property location within the Chitral map area."
         )}`
       );
     }
@@ -536,13 +548,17 @@ export async function updateListing(
     ) ||
     !isValidLongitude(
       longitude
+    ) ||
+    !isWithinChitral(
+      latitude,
+      longitude
     )
   ) {
     redirect(
       `/sell/edit/${encodeURIComponent(
         propertyId
       )}?error=${encodeURIComponent(
-        "Please select the property location on the map."
+        "Please select a property location within the Chitral map area."
       )}`
     );
   }
@@ -1145,5 +1161,22 @@ function isValidLongitude(
     ) &&
     value >= -180 &&
     value <= 180
+  );
+}
+
+
+function isWithinChitral(
+  latitude: number,
+  longitude: number
+) {
+  return (
+    latitude >=
+      CHITRAL_LIMITS.south &&
+    latitude <=
+      CHITRAL_LIMITS.north &&
+    longitude >=
+      CHITRAL_LIMITS.west &&
+    longitude <=
+      CHITRAL_LIMITS.east
   );
 }

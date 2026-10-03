@@ -120,6 +120,9 @@ export default function PropertyMap({
         />
 
 
+        <MapResizeController />
+
+
         <MapOverlayControls
           properties={
             mappedProperties
@@ -317,6 +320,121 @@ function MapViewController({
 
 
 /* ============================================================
+   RESIZE CONTROLLER
+
+   Leaflet can mount while the responsive map panel is hidden.
+   Observe its container so switching from list -> map on mobile
+   recalculates tile and control placement immediately.
+============================================================ */
+
+function MapResizeController() {
+  const map =
+    useMap();
+
+
+  useEffect(
+    () => {
+      const container =
+        map.getContainer();
+
+
+      let animationFrame:
+        number | null =
+          null;
+
+
+      const invalidate =
+        () => {
+          if (
+            animationFrame !==
+            null
+          ) {
+            cancelAnimationFrame(
+              animationFrame
+            );
+          }
+
+
+          animationFrame =
+            requestAnimationFrame(
+              () => {
+                map.invalidateSize({
+                  pan: false,
+                });
+
+                animationFrame =
+                  null;
+              }
+            );
+        };
+
+
+      invalidate();
+
+
+      if (
+        typeof ResizeObserver !==
+        "undefined"
+      ) {
+        const observer =
+          new ResizeObserver(
+            invalidate
+          );
+
+
+        observer.observe(
+          container
+        );
+
+
+        return () => {
+          observer.disconnect();
+
+          if (
+            animationFrame !==
+            null
+          ) {
+            cancelAnimationFrame(
+              animationFrame
+            );
+          }
+        };
+      }
+
+
+      window.addEventListener(
+        "resize",
+        invalidate
+      );
+
+
+      return () => {
+        window.removeEventListener(
+          "resize",
+          invalidate
+        );
+
+        if (
+          animationFrame !==
+          null
+        ) {
+          cancelAnimationFrame(
+            animationFrame
+          );
+        }
+      };
+    },
+    [
+      map,
+    ]
+  );
+
+
+  return null;
+}
+
+
+/* ============================================================
    MAP OVERLAY
 ============================================================ */
 
@@ -342,9 +460,9 @@ function MapOverlayControls({
 
 
   return createPortal(
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-3 p-3 sm:p-4">
+    <div className="pointer-events-none absolute inset-0 z-[1000]">
 
-      <div className="pointer-events-auto rounded-2xl border border-white/80 bg-white/90 px-3.5 py-2.5 shadow-lg backdrop-blur-md">
+      <div className="absolute left-3 top-[92px] rounded-2xl border border-white/80 bg-white/90 px-3.5 py-2.5 shadow-lg backdrop-blur-md sm:left-4">
 
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
           {
@@ -383,7 +501,7 @@ function MapOverlayControls({
             true
           );
         }}
-        className="pointer-events-auto rounded-full border border-white/80 bg-white/95 px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white hover:text-slate-950"
+        className="pointer-events-auto absolute right-3 top-3 rounded-full border border-white/80 bg-white/95 px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 sm:right-4 sm:top-4"
       >
         Reset view
       </button>

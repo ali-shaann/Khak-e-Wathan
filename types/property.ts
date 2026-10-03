@@ -81,7 +81,7 @@ export type Property = {
 
   roadAccess: boolean;
   roadType: string;
-  distanceToMainRoadM: number;
+  distanceToMainRoadM: number | null;
 
   waterAvailable: boolean;
   waterSource: string;
@@ -89,13 +89,13 @@ export type Property = {
   electricityAvailable: boolean;
   irrigationAvailable: boolean;
 
-  internetQuality: InternetQuality;
+  internetQuality: InternetQuality | null;
 
-  terrain: Terrain;
-  slope: Slope;
+  terrain: Terrain | null;
+  slope: Slope | null;
 
-  residentialSuitability: Suitability;
-  agriculturalSuitability: Suitability;
+  residentialSuitability: Suitability | null;
+  agriculturalSuitability: Suitability | null;
 
   sellerName: string;
 

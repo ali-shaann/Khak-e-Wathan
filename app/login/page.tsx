@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import AuthForms from "@/components/auth/AuthForms";
+import BrandMark from "@/components/BrandMark";
 
 
 export default async function LoginPage({
@@ -26,9 +27,10 @@ export default async function LoginPage({
             className="inline-flex items-center gap-3"
           >
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 font-bold text-white">
-              K
-            </div>
+            <BrandMark
+              size={40}
+              className="shrink-0"
+            />
 
 
             <div>

@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+
+    // Local Python environment / generated cache files:
+    "ml/.venv/**",
+    "**/__pycache__/**",
+    "**/*.pyc",
   ]),
 ]);
 

@@ -1,5 +1,6 @@
 import {
   getMlValuation,
+  hasCompleteMlFeatures,
 } from "@/lib/ml";
 
 import type {
@@ -12,6 +13,41 @@ export default async function MLValuationCard({
 }: {
   property: Property;
 }) {
+  if (
+    !hasCompleteMlFeatures(
+      property
+    )
+  ) {
+    return (
+      <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
+              Machine learning
+            </p>
+
+            <p className="mt-1.5 text-sm font-semibold text-slate-300">
+              More property details needed
+            </p>
+          </div>
+
+
+          <span className="rounded-full border border-slate-500/10 bg-slate-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+            Not available
+          </span>
+        </div>
+
+
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          The ML estimate is shown only when the listing has all model inputs.
+          The explainable estimate remains available.
+        </p>
+      </div>
+    );
+  }
+
+
   const result =
     await getMlValuation(
       property

@@ -1,0 +1,36 @@
+Khak-e-Wathan QA Fixes v2.5
+
+COPY / REPLACE
+- README.md
+- types/property.ts
+- lib/properties.ts
+- lib/ml.ts
+- components/MLValuationCard.tsx
+- components/map/PropertyMap.tsx
+- app/sell/actions.ts
+- app/login/page.tsx
+- app/not-found.tsx
+- ml/requirements.txt
+
+REFERENCE
+- QA-REPORT.md
+
+MANUAL CLEANUP
+The committed repo contains tracked Python bytecode. After copying the patch:
+
+git rm -r ml/__pycache__
+
+Then test:
+
+rm -rf .next
+npm run lint
+npm run build
+
+If both pass:
+
+git status
+git add .
+git commit -m "fix: address final QA findings"
+git push
+
+Do not include .env files or API keys.

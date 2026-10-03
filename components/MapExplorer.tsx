@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -197,30 +196,6 @@ export default function MapExplorer({
     );
 
 
-  useEffect(
-    () => {
-      if (
-        selectedPropertyId &&
-        !filteredProperties.some(
-          (
-            property
-          ) =>
-            property.id ===
-            selectedPropertyId
-        )
-      ) {
-        setSelectedPropertyId(
-          null
-        );
-      }
-    },
-    [
-      filteredProperties,
-      selectedPropertyId,
-    ]
-  );
-
-
   const hasFilters =
     Boolean(
       search.trim()
@@ -229,6 +204,45 @@ export default function MapExplorer({
       "All" ||
     propertyType !==
       "All";
+
+
+  function updateSearch(
+    value: string
+  ) {
+    setSearch(
+      value
+    );
+
+    setSelectedPropertyId(
+      null
+    );
+  }
+
+
+  function updateLocation(
+    value: string
+  ) {
+    setLocation(
+      value
+    );
+
+    setSelectedPropertyId(
+      null
+    );
+  }
+
+
+  function updatePropertyType(
+    value: string
+  ) {
+    setPropertyType(
+      value
+    );
+
+    setSelectedPropertyId(
+      null
+    );
+  }
 
 
   function clearFilters() {
@@ -352,7 +366,7 @@ export default function MapExplorer({
                   onChange={(
                     event
                   ) =>
-                    setSearch(
+                    updateSearch(
                       event.target.value
                     )
                   }
@@ -369,7 +383,7 @@ export default function MapExplorer({
                 location
               }
               onChange={
-                setLocation
+                updateLocation
               }
               options={[
                 {
@@ -398,7 +412,7 @@ export default function MapExplorer({
                 propertyType
               }
               onChange={
-                setPropertyType
+                updatePropertyType
               }
               options={[
                 {
