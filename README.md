@@ -1,107 +1,295 @@
-# Khak-e-Wathan
+<p align="center">
+  <img src="docs/images/khak-logo.png" alt="Khak-e-Wathan logo" width="150" />
+</p>
 
-**Property discovery for Chitral.**
+<h1 align="center">Khak-e-Wathan</h1>
 
-Khak-e-Wathan is a hackathon prototype for exploring and listing property across
-Chitral, Pakistan. It combines structured property information, map-based
-discovery, seller/admin workflows, explainable valuation, an ML valuation demo,
-and natural-language property search.
+<p align="center">
+  <strong>Property discovery for Chitral</strong><br/>
+  A hackathon project by <strong>JourneyMen</strong>
+</p>
 
-> **Demo note:** Property data, valuation baselines, and the ML training dataset
-> used in this project are synthetic/demo data. They should not be treated as
-> verified market prices, legal parcel information, or professional appraisals.
+<p align="center">
+  <a href="https://khak-e-wathan.vercel.app/"><strong>Live Demo</strong></a>
+</p>
 
-## What the platform does
+<p align="center">
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-111827?logo=nextdotjs&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%7C%20Auth%20%7C%20Storage-3FCF8E?logo=supabase&logoColor=white" />
+  <img alt="Leaflet" src="https://img.shields.io/badge/Leaflet-Maps-199900?logo=leaflet&logoColor=white" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-ML-3776AB?logo=python&logoColor=white" />
+</p>
 
-### Buyers
-- Browse active property listings.
-- Search using normal filters or natural-language requests.
-- Explore listings on an interactive Chitral map.
-- Open a Property Passport with consistent details about access, utilities,
-  terrain, suitability, verification checks, photos, and approximate location.
-- View an explainable demo valuation range.
-- View a second ML valuation when all required structured inputs are available.
+---
 
-### Sellers
-- Create a private draft.
-- Mark an approximate location within the Chitral map area.
-- Upload property photos.
-- Review the listing before submitting it.
-- Track draft, pending, active, and rejected listings from the dashboard.
-- Edit rejected/draft listings and resubmit them.
+## Team — JourneyMen
 
-### Admins
-- Review pending listings.
-- Inspect listing details and seller-uploaded photos.
-- Update verification checks.
-- Approve or reject listings with review notes.
-
-## AI and ML
-
-Khak-e-Wathan uses AI in two distinct places:
-
-1. **Natural-language search**
-   - An LLM interprets a buyer's request and converts it into validated search
-     filters.
-   - The actual results still come from the application's property listings.
-   - A deterministic local parser is available as a fallback if the LLM call is
-     unavailable.
-
-2. **ML valuation**
-   - A Random Forest model predicts a demo property value from structured land
-     characteristics.
-   - The model was trained on a **synthetic Chitral-style dataset**, not verified
-     historical market transactions.
-   - The UI keeps this separate from the explainable rule-based valuation.
-
-The goal is to demonstrate useful AI-assisted workflows while keeping search
-results grounded in actual listings and keeping valuation limitations visible.
-
-## Tech stack
-
-### Web application
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS
-- Supabase Auth, Postgres, Storage, and Row Level Security
-- Leaflet / React Leaflet
-- OpenStreetMap tiles
-- OpenAI Responses API for natural-language search
-
-### ML service
-- Python
-- pandas
-- scikit-learn
-- joblib
-- FastAPI
-- Uvicorn
-
-### Deployment
-- Frontend: Vercel
-- ML API: Railway
-- Database/Auth/Storage: Supabase
-
-## Main routes
-
-| Route | Purpose |
+| Role | Member |
 | --- | --- |
-| `/` | Homepage |
-| `/properties` | Browse and search listings |
-| `/properties/[id]` | Property Passport / listing detail |
-| `/map` | Map-based property discovery |
-| `/login` | Sign in / create account |
-| `/dashboard` | Seller dashboard |
-| `/sell` | Create listing |
-| `/sell/photos` | Upload listing photos |
-| `/sell/review` | Final seller review |
-| `/sell/edit/[id]` | Edit draft/rejected listing |
-| `/admin` | Admin moderation queue |
-| `/admin/properties/[id]` | Admin listing review |
+| **Team Lead** | **Ali Shan** |
+| Team Member | Muhammad Mazhar Faheem |
+| Team Member | Syed Mafaz Ali Shah |
 
-## Local development
+---
 
-### 1. Install frontend dependencies
+## The Problem
+
+Property discovery in Chitral is still largely handled through traditional methods: contacting people, asking around, relying on personal networks, visiting areas physically, or doing a lot of separate research before finding useful information.
+
+Even when a property is available, important details such as road access, utilities, terrain, approximate location, verification status, and expected value may be scattered or unavailable in one place.
+
+This makes the process slower and less transparent for both buyers and sellers.
+
+---
+
+## Our Solution
+
+**Khak-e-Wathan is a digital bridge between property sellers and buyers in Chitral.**
+
+Sellers can create structured listings with photos, location, access, utilities and land information. Buyers can explore those listings through search, filters, maps and detailed **Property Passports**.
+
+> **Khak-e-Wathan is not an online property shop.**
+>
+> The platform does not sell land, process payments, transfer ownership, or replace legal due diligence. It helps people **discover and understand properties more easily** before they continue the real-world negotiation and legal process.
+
+The current demo focuses on **Booni and Balach**, while the data model and search system are designed to expand to more locations across Chitral.
+
+---
+
+## Key Features
+
+- **Property marketplace** with residential, agricultural and commercial listings
+- **Natural-language property search**
+- **Manual search filters** for location, price and property features
+- **Interactive Leaflet map** with property markers
+- **Property Passport** with structured land information
+- **Road, water, electricity, irrigation and internet details**
+- **Approximate property location** with map guardrails
+- **Verification workflow** with visible verification status
+- **Seller workflow** for draft → photos → review → submission
+- **Admin moderation** for review, verification, approval and rejection
+- **Explainable value guidance**
+- **Machine-learning assisted valuation**
+- Authentication and role-based access through Supabase
+
+> Verification information helps users understand which checks have been completed. It does not replace formal legal or ownership verification.
+
+---
+
+## AI Features
+
+### 1. AI-assisted natural-language search
+
+A buyer can write a normal request such as:
+
+```text
+residential land in Booni under 50 lakh with electricity
+```
+
+The OpenAI-powered search interpreter converts that sentence into a validated set of filters such as:
+
+- location
+- property type
+- minimum / maximum price
+- road access
+- water
+- electricity
+- irrigation
+- internet quality
+
+The AI **does not generate or invent listings**. After interpreting the query, Khak-e-Wathan searches the actual properties stored in Supabase.
+
+### 2. Built-in fallback search system
+
+The search feature is deliberately designed to keep working even when the AI service is unavailable.
+
+A deterministic fallback parser is always available and can understand common search patterns including:
+
+- Booni, Balach, Chitral City, Drosh, Mastuj and Reshun
+- residential, agricultural and commercial property
+- Pakistani price expressions such as **lakh** and **crore**
+- minimum and maximum budgets
+- road access
+- water and electricity
+- irrigation
+- internet quality
+- explicit requests such as “without electricity”
+
+The fallback is used when, for example:
+
+- no OpenAI API key is configured
+- the AI request fails
+- the network is unavailable
+- the model returns an invalid response
+- model access changes
+
+This means property search still works instead of failing completely.
+
+### 3. ML-assisted valuation
+
+Khak-e-Wathan also includes a Python machine-learning service that estimates property value from structured characteristics such as:
+
+- location
+- property type
+- area
+- road access
+- distance from the main road
+- utilities
+- internet quality
+- terrain and slope
+- residential / agricultural suitability
+
+The model uses a **Random Forest Regressor** built with scikit-learn and is served through a **FastAPI** service deployed on Railway.
+
+For the hackathon prototype, the ML model is trained on **synthetic demonstration data**, so its output must not be treated as a professional appraisal or verified Chitral market price.
+
+---
+
+## How Search Stays Grounded
+
+```text
+Buyer writes a natural-language request
+                ↓
+        AI search interpreter
+                ↓
+         Validated filters
+                ↓
+      Supabase property query
+                ↓
+       Real stored listings
+```
+
+If the AI interpreter is unavailable:
+
+```text
+Buyer request
+     ↓
+Deterministic fallback parser
+     ↓
+Validated filters
+     ↓
+Supabase property query
+```
+
+The database remains the source of truth in both cases.
+
+---
+
+## Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Frontend | **Next.js 16**, React 19, TypeScript |
+| Styling | **Tailwind CSS 4** |
+| Maps | **Leaflet**, React Leaflet, OpenStreetMap |
+| Database | **Supabase PostgreSQL** |
+| Authentication | **Supabase Auth** |
+| File Storage | **Supabase Storage** |
+| Database Security | Supabase **Row Level Security (RLS)** + server-side RPC functions |
+| AI Search | **OpenAI Responses API** with structured output |
+| Search Resilience | Custom deterministic TypeScript fallback parser |
+| ML | **Python**, pandas, scikit-learn, Random Forest |
+| ML API | **FastAPI** |
+| Frontend Hosting | **Vercel** |
+| ML Hosting | **Railway** |
+| Version Control | **Git + GitHub** |
+
+---
+
+## Architecture
+
+<p align="center">
+  <img src="docs/images/architecture.png" alt="Khak-e-Wathan system architecture" width="100%" />
+</p>
+
+At a high level:
+
+```text
+Buyers / Sellers / Admins
+            │
+       Next.js App
+         (Vercel)
+            │
+   ┌────────┼────────┐
+   │        │        │
+Supabase  OpenAI   ML API
+   │                │
+Postgres          FastAPI
+Auth              Railway
+Storage           Random Forest
+```
+
+---
+
+## Demo Catalogue
+
+<p align="center">
+  <img src="docs/images/demo-catalogue.jpg" alt="Synthetic Khak-e-Wathan demo catalogue" width="100%" />
+</p>
+
+The hackathon demo currently uses synthetic listings and representative demo imagery so the complete product flow can be demonstrated without presenting test data as genuine market inventory.
+
+---
+
+## Demo Data & Important Disclaimer
+
+The current hackathon dataset is **synthetic**.
+
+This includes demo:
+
+- listings
+- asking prices
+- coordinates
+- verification states
+- property images
+- ML training data
+
+Approximate map points are for demonstration and are **not cadastral parcel boundaries**.
+
+The valuation system is a prototype and should not be used as a professional property appraisal.
+
+---
+
+## Main User Flows
+
+### Buyer
+
+```text
+Homepage
+→ Search / Filters
+→ Property Results
+→ Map
+→ Property Passport
+→ Verification + Value Guidance
+```
+
+### Seller
+
+```text
+Sign In
+→ Property Details
+→ Approximate Location
+→ Upload Photos
+→ Review
+→ Submit for Admin Review
+```
+
+### Admin
+
+```text
+Moderation Queue
+→ Open Listing
+→ Review Information
+→ Update Verification Checks
+→ Approve / Reject
+```
+
+---
+
+## Running Locally
+
+### 1. Install dependencies
 
 ```bash
 npm install
@@ -109,19 +297,19 @@ npm install
 
 ### 2. Create `.env.local`
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 
-ML_API_URL=http://127.0.0.1:8000
+OPENAI_API_KEY=
+OPENAI_SEARCH_MODEL=
 
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_SEARCH_MODEL=gpt-6-luna
+ML_API_URL=
 ```
 
-Do not commit `.env.local` or API secrets.
+Never commit real secret keys.
 
-### 3. Start the Next.js app
+### 3. Run the Next.js app
 
 ```bash
 npm run dev
@@ -133,119 +321,47 @@ Then open:
 http://localhost:3000
 ```
 
-## Running the ML service locally
-
-From the project root:
-
-```bash
-python -m venv ml/.venv
-```
-
-Activate it on Windows:
-
-```bash
-source ml/.venv/Scripts/activate
-```
-
-Install dependencies:
+### 4. Optional: run the ML service locally
 
 ```bash
 pip install -r ml/requirements.txt
+python ml/train_model.py
+uvicorn ml.api:app --reload
 ```
 
-Run the API:
+Then set:
 
-```bash
-uvicorn ml.api:app --reload --port 8000
+```env
+ML_API_URL=http://127.0.0.1:8000
 ```
 
-Useful endpoint:
+---
 
-```text
-GET /health
-```
+## Project Scope
 
-The committed model is under `ml/models/`.
+Khak-e-Wathan currently demonstrates the platform with **Booni and Balach** listings.
 
-## Supabase requirements
+The project is structured so additional Chitral locations can be introduced without rebuilding the core platform.
 
-The app expects Supabase tables for:
+Possible future improvements include:
 
-- `locations`
-- `profiles`
-- `properties`
-- `property_images`
-- `property_verifications`
+- more verified Chitral locations and listings
+- real historical transaction data for stronger valuation models
+- deeper property verification workflows
+- improved local market analytics
+- richer seller/buyer communication tools
+- better low-bandwidth and offline-friendly support
 
-It also relies on Row Level Security and privileged RPC/functions for seller
-submission and admin moderation.
+---
 
-The current hackathon repository does **not** include database migration files,
-so a fresh clone still needs the matching Supabase schema/policies/functions to
-be configured separately.
+## Why Khak-e-Wathan?
 
-For a production-quality continuation of the project, the next database
-engineering step should be to version the Supabase schema and RLS policies as
-migrations.
+The goal is not to move an offline property transaction completely onto the internet.
 
-## Property location
+The goal is to make the **discovery and information stage** much better.
 
-Map coordinates represent an **approximate listing location**.
+Khak-e-Wathan gives buyers a clearer place to search and understand property information, while giving sellers a structured way to present what they are offering.
 
-The Chitral map limits are a generous product/UX guardrail. They are **not** an
-official district boundary, cadastral boundary, survey, or legal parcel map.
-
-## Valuation disclaimer
-
-The explainable valuation baselines and the ML training data are synthetic demo
-inputs created for the hackathon.
-
-Valuation output is for product demonstration only and is not:
-- a professional appraisal,
-- verified Chitral market evidence,
-- legal advice,
-- or a guarantee of sale value.
-
-## Production checks
-
-Before deploying a final build:
-
-```bash
-npm run lint
-npm run build
-```
-
-Then smoke-test:
-
-1. Homepage and navigation.
-2. Property search and filters.
-3. Natural-language search.
-4. `/map` on desktop and mobile.
-5. Property detail and valuation.
-6. Sign up / sign in / sign out.
-7. Seller create → photos → review → submit.
-8. Admin verification → approve/reject.
-9. Public visibility after approval.
-10. Railway `/health` and ML prediction availability.
-
-## Repository hygiene
-
-Generated caches and secrets should not be committed:
-
-```text
-node_modules/
-.next/
-.env*
-ml/.venv/
-**/__pycache__/
-*.pyc
-*.tsbuildinfo
-```
-
-## Brand
-
-**Khak-e-Wathan**  
-Property discovery for Chitral.
-
-The house, mountain, and location-pin mark represents property discovery rooted
-in Chitral's landscape.
+<p align="center">
+  <strong>Khak-e-Wathan — Land decisions, made clearer.</strong>
+</p>
