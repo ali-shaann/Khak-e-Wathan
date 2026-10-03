@@ -3,6 +3,8 @@ import {
 } from "next/navigation";
 
 import Navbar from "@/components/Navbar";
+import SellerFlowSteps from "@/components/sell/SellerFlowSteps";
+import PendingSubmitButton from "@/components/sell/PendingSubmitButton";
 
 import LocationPickerShell from "@/components/sell/LocationPickerShell";
 
@@ -167,22 +169,31 @@ export default async function EditPropertyPage({
       <Navbar />
 
 
-      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
 
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          Edit property
-        </p>
-
-
-        <h1 className="mt-3 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
-          Update your listing.
-        </h1>
+        <SellerFlowSteps
+          current={1}
+          propertyId={property.id}
+        />
 
 
-        <p className="mt-4 max-w-2xl leading-7 text-slate-500">
-          Make the requested changes, review your photos,
-          and submit the property again when it is ready.
-        </p>
+        <div className="mt-8">
+
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            Step 1 of 3 · Edit details
+          </p>
+
+
+          <h1 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
+            Update your property listing.
+          </h1>
+
+
+          <p className="mt-4 max-w-2xl leading-7 text-slate-500">
+            Save the changes here, check your photos next, then review the full
+            listing before it returns to the admin queue.
+          </p>
+        </div>
 
 
         {property.listing_status ===
@@ -716,12 +727,11 @@ export default async function EditPropertyPage({
             </p>
 
 
-            <button
-              type="submit"
+            <PendingSubmitButton
+              idleLabel="Save changes & continue"
+              pendingLabel="Saving changes…"
               className="mt-7 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-slate-950 shadow-lg transition hover:-translate-y-0.5"
-            >
-              Save changes & continue
-            </button>
+            />
           </section>
         </form>
       </section>
@@ -758,7 +768,7 @@ function FormSection({
 
       <div className="mb-7">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          Step {eyebrow}
+          Section {eyebrow}
         </p>
 
         <h2 className="mt-2 text-2xl font-bold">

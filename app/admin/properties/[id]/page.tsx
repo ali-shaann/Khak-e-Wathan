@@ -1,11 +1,16 @@
 import Link from "next/link";
+
 import {
   notFound,
   redirect,
 } from "next/navigation";
 
 import Navbar from "@/components/Navbar";
-import { createClient } from "@/lib/supabase/server";
+import PendingSubmitButton from "@/components/sell/PendingSubmitButton";
+
+import {
+  createClient,
+} from "@/lib/supabase/server";
 
 import {
   approveProperty,
@@ -23,14 +28,14 @@ export default async function AdminPropertyPage({
   }>;
 
   searchParams: Promise<{
-  error?: string;
-  message?: string;
-}>;
-
+    error?: string;
+    message?: string;
+  }>;
 }) {
   const {
     id,
-  } = await params;
+  } =
+    await params;
 
   const query =
     await searchParams;
@@ -39,95 +44,111 @@ export default async function AdminPropertyPage({
     await createClient();
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: {
+      user,
+    },
+  } =
+    await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect(
+      "/login"
+    );
   }
 
   const {
-    data: profile,
-  } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq(
-      "id",
-      user.id
-    )
-    .maybeSingle();
+    data:
+      profile,
+  } =
+    await supabase
+      .from(
+        "profiles"
+      )
+      .select(
+        "role"
+      )
+      .eq(
+        "id",
+        user.id
+      )
+      .maybeSingle();
 
   if (
     !profile ||
     profile.role !==
       "admin"
   ) {
-    redirect("/dashboard");
+    redirect(
+      "/dashboard"
+    );
   }
 
   const {
-    data: property,
+    data:
+      property,
     error,
-  } = await supabase
-    .from("properties")
-    .select(`
-      id,
-      title,
-      description,
-      property_type,
-      listing_status,
-      price_pkr,
-      area_value,
-      area_unit,
-
-      latitude,
-      longitude,
-
-      road_access,
-      road_type,
-      distance_to_main_road_m,
-
-      water_available,
-      water_source,
-      electricity_available,
-      irrigation_available,
-      internet_quality,
-
-      terrain,
-      slope,
-      residential_suitability,
-      agricultural_suitability,
-
-      seller_display_name,
-      created_at,
-
-      locations (
-        name
-      ),
-
-      property_images (
+  } =
+    await supabase
+      .from(
+        "properties"
+      )
+      .select(`
         id,
-        storage_path,
-        alt_text,
-        display_order,
-        is_primary
-      ),
-      property_verifications (
-  seller_identity,
-  property_location,
-  photos,
-  ownership_evidence,
-  physical_inspection,
-  updated_at
-)
-      
-    `)
-    .eq(
-      "id",
-      id
-    )
-    .maybeSingle();
+        title,
+        description,
+        property_type,
+        listing_status,
+        price_pkr,
+        area_value,
+        area_unit,
 
+        latitude,
+        longitude,
+
+        road_access,
+        road_type,
+        distance_to_main_road_m,
+
+        water_available,
+        water_source,
+        electricity_available,
+        irrigation_available,
+        internet_quality,
+
+        terrain,
+        slope,
+        residential_suitability,
+        agricultural_suitability,
+
+        seller_display_name,
+        created_at,
+
+        locations (
+          name
+        ),
+
+        property_images (
+          id,
+          storage_path,
+          alt_text,
+          display_order,
+          is_primary
+        ),
+
+        property_verifications (
+          seller_identity,
+          property_location,
+          photos,
+          ownership_evidence,
+          physical_inspection,
+          updated_at
+        )
+      `)
+      .eq(
+        "id",
+        id
+      )
+      .maybeSingle();
 
   if (
     error ||
@@ -174,7 +195,9 @@ export default async function AdminPropertyPage({
 
   const gallery =
     images.map(
-      (image) => {
+      (
+        image
+      ) => {
         const {
           data:
             publicData,
@@ -195,451 +218,614 @@ export default async function AdminPropertyPage({
       }
     );
 
-    type VerificationRow = {
-  seller_identity: string;
-  property_location: string;
-  photos: string;
-  ownership_evidence: string;
-  physical_inspection: string;
-  updated_at: string;
-};
+  const primaryImage =
+    gallery.find(
+      (
+        image
+      ) =>
+        image.is_primary
+    ) ??
+    gallery[0] ??
+    null;
 
-const verificationRelation =
-  property.property_verifications as
-    | VerificationRow
-    | VerificationRow[]
-    | null;
+  const secondaryImages =
+    primaryImage
+      ? gallery.filter(
+          (
+            image
+          ) =>
+            image.id !==
+            primaryImage.id
+        )
+      : [];
 
-const verification =
-  Array.isArray(
-    verificationRelation
-  )
-    ? verificationRelation[0] ??
-      null
-    : verificationRelation;
-const verificationValues = {
-  sellerIdentity:
-    verification?.seller_identity ??
-    "not_checked",
+  type VerificationRow = {
+    seller_identity:
+      string;
+    property_location:
+      string;
+    photos:
+      string;
+    ownership_evidence:
+      string;
+    physical_inspection:
+      string;
+    updated_at:
+      string;
+  };
 
-  propertyLocation:
-    verification?.property_location ??
-    "not_checked",
+  const verificationRelation =
+    property.property_verifications as
+      | VerificationRow
+      | VerificationRow[]
+      | null;
 
-  photos:
-    verification?.photos ??
-    "not_checked",
+  const verification =
+    Array.isArray(
+      verificationRelation
+    )
+      ? verificationRelation[0] ??
+        null
+      : verificationRelation;
 
-  ownershipEvidence:
-    verification?.ownership_evidence ??
-    "not_checked",
+  const verificationValues = {
+    sellerIdentity:
+      verification?.seller_identity ??
+      "not_checked",
 
-  physicalInspection:
-    verification?.physical_inspection ??
-    "not_checked",
-};
+    propertyLocation:
+      verification?.property_location ??
+      "not_checked",
+
+    photos:
+      verification?.photos ??
+      "not_checked",
+
+    ownershipEvidence:
+      verification?.ownership_evidence ??
+      "not_checked",
+
+    physicalInspection:
+      verification?.physical_inspection ??
+      "not_checked",
+  };
+
+  const verificationList = [
+    verificationValues.sellerIdentity,
+    verificationValues.propertyLocation,
+    verificationValues.photos,
+    verificationValues.ownershipEvidence,
+    verificationValues.physicalInspection,
+  ];
+
+  const verifiedCount =
+    verificationList.filter(
+      (
+        status
+      ) =>
+        status ===
+        "verified"
+    ).length;
+
+  const pendingCount =
+    verificationList.filter(
+      (
+        status
+      ) =>
+        status ===
+        "pending"
+    ).length;
+
+  const isPendingReview =
+    property.listing_status ===
+    "pending_review";
 
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-slate-950">
+
       <Navbar />
 
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <Link
-          href="/admin"
-          className="text-sm font-semibold text-slate-500 transition hover:text-slate-950"
-        >
-          ← Review queue
-        </Link>
 
-        
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-        {query.error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-            {query.error}
-          </div>
-        )}
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
+          >
+            <span aria-hidden="true">
+              ←
+            </span>
+            Review queue
+          </Link>
 
-        {query.message && (
-  <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">
-    {query.message}
-  </div>
-)}
 
-        <div className="mt-8">
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-700">
-            {property.listing_status.replaceAll(
-              "_",
-              " "
-            )}
-          </span>
+          <div className="mt-6 flex flex-col justify-between gap-7 lg:flex-row lg:items-end">
 
-          <h1 className="mt-5 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
-            {property.title}
-          </h1>
+            <div className="min-w-0">
 
-          <p className="mt-3 text-slate-500">
-            {locationName}
-            {" · "}
-            {
-              property.property_type
-            }
-          </p>
-        </div>
+              <div className="flex flex-wrap items-center gap-2">
 
-        {/* PHOTOS */}
+                <StatusBadge
+                  status={
+                    property.listing_status
+                  }
+                />
 
-        {gallery.length >
-        0 ? (
-          <section className="mt-10 grid gap-3 lg:grid-cols-3">
-            <div className="overflow-hidden rounded-[2rem] bg-slate-100 lg:col-span-2">
-              <img
-                src={
-                  (
-                    gallery.find(
-                      (image) =>
-                        image.is_primary
-                    ) ??
-                    gallery[0]
-                  ).url
-                }
-                alt={
+
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                  {verifiedCount}/5 checks verified
+                </span>
+
+
+                {pendingCount >
+                  0 && (
+                  <span className="rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-700">
+                    {pendingCount} verification pending
+                  </span>
+                )}
+              </div>
+
+
+              <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
+                {
                   property.title
                 }
-                className="aspect-[16/10] h-full w-full object-cover"
-              />
+              </h1>
+
+
+              <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                <span>
+                  {
+                    locationName
+                  }
+                </span>
+
+                <span className="text-slate-300">
+                  •
+                </span>
+
+                <span className="capitalize">
+                  {
+                    formatValue(
+                      property.property_type
+                    )
+                  }
+                </span>
+
+                <span className="text-slate-300">
+                  •
+                </span>
+
+                <span>
+                  Seller:{" "}
+                  {property.seller_display_name ??
+                    "Seller"}
+                </span>
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-              {gallery
-                .filter(
-                  (image) =>
-                    !image.is_primary
-                )
-                .slice(
-                  0,
-                  2
-                )
-                .map(
-                  (image) => (
-                    <div
-                      key={
-                        image.id
-                      }
-                      className="overflow-hidden rounded-[1.5rem] bg-slate-100"
-                    >
-                      <img
-                        src={
-                          image.url
-                        }
-                        alt={
-                          image.alt_text ??
-                          property.title
-                        }
-                        className="aspect-[16/10] h-full w-full object-cover"
-                      />
-                    </div>
-                  )
-                )}
+
+            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4 lg:min-w-[250px] lg:text-right">
+
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                Asking price
+              </p>
+
+
+              <p className="mt-2 text-3xl font-bold tracking-[-0.03em]">
+                PKR{" "}
+                {Number(
+                  property.price_pkr
+                ).toLocaleString()}
+              </p>
+
+
+              <p className="mt-2 text-xs text-slate-400">
+                Submitted{" "}
+                {new Date(
+                  property.created_at
+                ).toLocaleDateString()}
+              </p>
             </div>
-          </section>
-        ) : (
-          <div className="mt-10 rounded-[2rem] bg-slate-100 px-6 py-16 text-center text-slate-400">
-            No uploaded photos.
+          </div>
+        </div>
+      </section>
+
+
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+        {query.error && (
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold">
+              !
+            </span>
+
+
+            <span>
+              {
+                query.error
+              }
+            </span>
           </div>
         )}
 
-        {/* SUMMARY */}
 
-        
+        {query.message && (
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
 
-        <div className="mt-8 grid gap-5 lg:grid-cols-[1.5fr_0.8fr]">
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-              Property details
-            </p>
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold">
+              ✓
+            </span>
 
-            <h2 className="mt-2 text-2xl font-bold">
-              Property Passport
-            </h2>
 
-            <p className="mt-5 leading-7 text-slate-600">
+            <span>
               {
-                property.description
+                query.message
               }
-            </p>
+            </span>
+          </div>
+        )}
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <Field
-                label="Asking price"
-                value={`PKR ${Number(
-                  property.price_pkr
-                ).toLocaleString()}`}
-              />
 
-              <Field
-                label="Land size"
-                value={`${property.area_value} ${property.area_unit}`}
-              />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
 
-              <Field
-                label="Road access"
-                value={
-                  property.road_access
-                    ? "Yes"
-                    : "No"
-                }
-              />
+          <div className="space-y-6">
 
-              <Field
-                label="Road type"
-                value={
-                  property.road_type ??
-                  "Not specified"
-                }
-              />
+            {/* ==================================================
+                GALLERY
+            ================================================== */}
 
-              <Field
-                label="Distance to main road"
-                value={
-                  property.distance_to_main_road_m !=
-                  null
-                    ? `${property.distance_to_main_road_m} m`
-                    : "Not specified"
-                }
-              />
+            {primaryImage ? (
+              <section className="grid gap-3 overflow-hidden rounded-[2rem] lg:grid-cols-[minmax(0,1.8fr)_minmax(240px,0.8fr)]">
 
-              <Field
-                label="Water"
-                value={
-                  property.water_available
-                    ? property.water_source ??
-                      "Available"
-                    : "Not available"
-                }
-              />
+                <div className="relative overflow-hidden rounded-[2rem] bg-slate-100">
 
-              <Field
-                label="Electricity"
-                value={
-                  property.electricity_available
-                    ? "Available"
-                    : "Not available"
-                }
-              />
-
-              <Field
-                label="Irrigation"
-                value={
-                  property.irrigation_available
-                    ? "Available"
-                    : "Not available"
-                }
-              />
-
-              <Field
-                label="Connectivity"
-                value={
-                  property.internet_quality ??
-                  "Not specified"
-                }
-              />
-
-              <Field
-                label="Terrain"
-                value={
-                  property.terrain ??
-                  "Not specified"
-                }
-              />
-
-              <Field
-                label="Slope"
-                value={
-                  property.slope ??
-                  "Not specified"
-                }
-              />
-
-              <Field
-                label="Residential suitability"
-                value={
-                  property.residential_suitability ??
-                  "Not specified"
-                }
-              />
-
-              <Field
-                label="Agricultural suitability"
-                value={
-                  property.agricultural_suitability ??
-                  "Not specified"
-                }
-              />
-
-              <Field
-                label="Latitude"
-                value={
-                  property.latitude !=
-                  null
-                    ? Number(
-                        property.latitude
-                      ).toFixed(
-                        6
-                      )
-                    : "Not specified"
-                }
-              />
-
-              <Field
-                label="Longitude"
-                value={
-                  property.longitude !=
-                  null
-                    ? Number(
-                        property.longitude
-                      ).toFixed(
-                        6
-                      )
-                    : "Not specified"
-                }
-              />
-            </div>
-
-            
-          </section>
-
-                
-        
-
-          {/* REVIEW PANEL */}
-        
-        <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-  <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-        Verification
-      </p>
-
-      <h2 className="mt-2 text-2xl font-bold">
-        Property verification checklist
-      </h2>
-
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-        Record what has actually been checked.
-        Verification statuses will later appear in the
-        public Property Passport.
-      </p>
-    </div>
-
-    {verification?.updated_at && (
-      <p className="text-xs text-slate-400">
-        Updated{" "}
-        {new Date(
-          verification.updated_at
-        ).toLocaleString()}
-      </p>
-    )}
-  </div>
-
-  <form
-    action={updateVerification}
-    className="mt-8"
-  >
-    <input
-      type="hidden"
-      name="propertyId"
-      value={property.id}
-    />
-
-    <div className="grid gap-4 md:grid-cols-2">
-      <VerificationSelect
-        label="Seller identity"
-        name="sellerIdentity"
-        defaultValue={
-          verificationValues.sellerIdentity
-        }
-      />
-
-      <VerificationSelect
-        label="Property location"
-        name="propertyLocation"
-        defaultValue={
-          verificationValues.propertyLocation
-        }
-      />
-
-      <VerificationSelect
-        label="Photos"
-        name="photos"
-        defaultValue={
-          verificationValues.photos
-        }
-      />
-
-      <VerificationSelect
-        label="Ownership evidence"
-        name="ownershipEvidence"
-        defaultValue={
-          verificationValues.ownershipEvidence
-        }
-      />
-
-      <VerificationSelect
-        label="Physical inspection"
-        name="physicalInspection"
-        defaultValue={
-          verificationValues.physicalInspection
-        }
-      />
-    </div>
-
-    <button
-      type="submit"
-      className="mt-6 rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-    >
-      Save verification
-    </button>
-  </form>
-</section>
-
-          <aside className="self-start rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              Admin review
-            </p>
-            
-
-            <h2 className="mt-2 text-2xl font-bold">
-              Review decision
-            </h2>
-
-            <div className="mt-6 rounded-2xl bg-white/[0.06] p-4">
-              <p className="text-xs uppercase tracking-wider text-slate-500">
-                Seller
-              </p>
-
-              <p className="mt-2 font-semibold">
-                {property.seller_display_name ??
-                  "Seller"}
-              </p>
-            </div>
-
-            {property.listing_status ===
-            "pending_review" ? (
-              <form
-                className="mt-6"
-              >
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-300">
-                    Review notes
-                  </span>
-
-                  <textarea
-                    name="reviewNotes"
-                    rows={5}
-                    placeholder="Optional for approval; required for rejection..."
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-white/30"
+                  <img
+                    src={
+                      primaryImage.url
+                    }
+                    alt={
+                      primaryImage.alt_text ??
+                      property.title
+                    }
+                    className="aspect-[16/10] h-full min-h-[360px] w-full object-cover"
                   />
-                </label>
+
+
+                  <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+
+                    <span className="rounded-full bg-slate-950/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white shadow-sm backdrop-blur">
+                      Cover photo
+                    </span>
+
+
+                    <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-semibold text-slate-600 shadow-sm backdrop-blur">
+                      {gallery.length}{" "}
+                      {gallery.length ===
+                      1
+                        ? "photo"
+                        : "photos"}
+                    </span>
+                  </div>
+                </div>
+
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+
+                  {secondaryImages
+                    .slice(
+                      0,
+                      2
+                    )
+                    .map(
+                      (
+                        image,
+                        index
+                      ) => (
+                        <div
+                          key={
+                            image.id
+                          }
+                          className="relative min-h-[180px] overflow-hidden rounded-[1.5rem] bg-slate-100"
+                        >
+
+                          <img
+                            src={
+                              image.url
+                            }
+                            alt={
+                              image.alt_text ??
+                              `${property.title} photo ${
+                                index +
+                                2
+                              }`
+                            }
+                            className="h-full min-h-[180px] w-full object-cover"
+                          />
+
+
+                          {index ===
+                            1 &&
+                            secondaryImages.length >
+                              2 && (
+                            <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-slate-950/35 to-transparent p-4">
+
+                              <span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                                +{
+                                  secondaryImages.length -
+                                  2
+                                } more
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
+
+
+                  {secondaryImages.length ===
+                    0 && (
+                    <div className="col-span-2 flex min-h-[190px] items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400 lg:col-span-1">
+                      No additional photos
+                    </div>
+                  )}
+                </div>
+              </section>
+            ) : (
+              <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-16 text-center text-slate-400">
+                No uploaded photos
+              </div>
+            )}
+
+
+            {/* ==================================================
+                OVERVIEW
+            ================================================== */}
+
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+
+              <SectionHeading
+                eyebrow="Listing review"
+                title="Property overview"
+                description="Seller-provided details for this moderation record."
+              />
+
+
+              <p className="mt-6 whitespace-pre-line text-[15px] leading-8 text-slate-600">
+                {
+                  property.description
+                }
+              </p>
+
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+
+                <Field
+                  label="Property type"
+                  value={
+                    formatValue(
+                      property.property_type
+                    )
+                  }
+                />
+
+
+                <Field
+                  label="Land size"
+                  value={`${property.area_value} ${formatAreaUnit(
+                    property.area_unit
+                  )}`}
+                />
+
+
+                <Field
+                  label="Location"
+                  value={
+                    locationName
+                  }
+                />
+
+
+                <Field
+                  label="Road access"
+                  value={
+                    property.road_access
+                      ? "Available"
+                      : "Not available"
+                  }
+                />
+
+
+                <Field
+                  label="Road type"
+                  value={
+                    property.road_type ??
+                    "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Main road distance"
+                  value={
+                    property.distance_to_main_road_m !=
+                    null
+                      ? `${property.distance_to_main_road_m} m`
+                      : "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Water"
+                  value={
+                    property.water_available
+                      ? property.water_source ??
+                        "Available"
+                      : "Not available"
+                  }
+                />
+
+
+                <Field
+                  label="Electricity"
+                  value={
+                    property.electricity_available
+                      ? "Available"
+                      : "Not available"
+                  }
+                />
+
+
+                <Field
+                  label="Irrigation"
+                  value={
+                    property.irrigation_available
+                      ? "Available"
+                      : "Not available"
+                  }
+                />
+
+
+                <Field
+                  label="Connectivity"
+                  value={
+                    property.internet_quality
+                      ? formatValue(
+                          property.internet_quality
+                        )
+                      : "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Terrain"
+                  value={
+                    property.terrain
+                      ? formatValue(
+                          property.terrain
+                        )
+                      : "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Slope"
+                  value={
+                    property.slope
+                      ? formatValue(
+                          property.slope
+                        )
+                      : "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Residential suitability"
+                  value={
+                    property.residential_suitability
+                      ? formatValue(
+                          property.residential_suitability
+                        )
+                      : "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Agricultural suitability"
+                  value={
+                    property.agricultural_suitability
+                      ? formatValue(
+                          property.agricultural_suitability
+                        )
+                      : "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Latitude"
+                  value={
+                    property.latitude !=
+                    null
+                      ? Number(
+                          property.latitude
+                        ).toFixed(
+                          6
+                        )
+                      : "Not specified"
+                  }
+                />
+
+
+                <Field
+                  label="Longitude"
+                  value={
+                    property.longitude !=
+                    null
+                      ? Number(
+                          property.longitude
+                        ).toFixed(
+                          6
+                        )
+                      : "Not specified"
+                  }
+                />
+              </div>
+            </section>
+
+
+            {/* ==================================================
+                VERIFICATION
+            ================================================== */}
+
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+
+              <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+
+                <SectionHeading
+                  eyebrow="Verification"
+                  title="Property verification checklist"
+                  description="Record only the checks that have actually been completed."
+                />
+
+
+                <div className="self-start rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-right">
+
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                    Verified
+                  </p>
+
+
+                  <p className="mt-1 text-xl font-bold text-emerald-950">
+                    {verifiedCount}/5
+                  </p>
+                </div>
+              </div>
+
+
+              {verification?.updated_at && (
+                <p className="mt-4 text-xs text-slate-400">
+                  Last updated{" "}
+                  {new Date(
+                    verification.updated_at
+                  ).toLocaleString()}
+                </p>
+              )}
+
+
+              <form
+                action={
+                  updateVerification
+                }
+                className="mt-7"
+              >
 
                 <input
                   type="hidden"
@@ -649,39 +835,318 @@ const verificationValues = {
                   }
                 />
 
-                <button
-                  formAction={
-                    approveProperty
-                  }
-                  className="mt-5 w-full rounded-full bg-emerald-400 px-6 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-300"
-                >
-                  Approve & publish
-                </button>
 
-                <button
-                  formAction={
-                    rejectProperty
-                  }
-                  className="mt-3 w-full rounded-full border border-red-400/30 bg-red-400/10 px-6 py-3.5 text-sm font-bold text-red-300 transition hover:bg-red-400/20"
-                >
-                  Reject listing
-                </button>
-                
+                <div className="grid gap-4 md:grid-cols-2">
+
+                  <VerificationSelect
+                    label="Seller identity"
+                    name="sellerIdentity"
+                    defaultValue={
+                      verificationValues.sellerIdentity
+                    }
+                  />
+
+
+                  <VerificationSelect
+                    label="Property location"
+                    name="propertyLocation"
+                    defaultValue={
+                      verificationValues.propertyLocation
+                    }
+                  />
+
+
+                  <VerificationSelect
+                    label="Photos"
+                    name="photos"
+                    defaultValue={
+                      verificationValues.photos
+                    }
+                  />
+
+
+                  <VerificationSelect
+                    label="Ownership evidence"
+                    name="ownershipEvidence"
+                    defaultValue={
+                      verificationValues.ownershipEvidence
+                    }
+                  />
+
+
+                  <VerificationSelect
+                    label="Physical inspection"
+                    name="physicalInspection"
+                    defaultValue={
+                      verificationValues.physicalInspection
+                    }
+                  />
+                </div>
+
+
+                <PendingSubmitButton
+                  idleLabel="Save verification"
+                  pendingLabel="Saving verification…"
+                  className="mt-6 rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                />
               </form>
-            ) : (
-                
-              <div className="mt-6 rounded-2xl bg-white/[0.06] p-5 text-sm text-slate-300">
-                This listing has already
-                been reviewed.
+            </section>
+          </div>
+
+
+          {/* ====================================================
+              STICKY MODERATION PANEL
+          ==================================================== */}
+
+          <aside className="space-y-5 lg:sticky lg:top-[92px] lg:self-start">
+
+            <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-[0_24px_70px_-34px_rgba(15,23,42,0.75)]">
+
+              <div className="p-6">
+
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+                  Admin review
+                </p>
+
+
+                <h2 className="mt-2 text-2xl font-bold">
+                  Review decision
+                </h2>
+
+
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Check the listing and verification record before publishing or
+                  returning it to the seller.
+                </p>
+
+
+                <div className="mt-6 grid grid-cols-2 gap-3">
+
+                  <SummaryBox
+                    label="Verified"
+                    value={`${verifiedCount}/5`}
+                  />
+
+
+                  <SummaryBox
+                    label="Photos"
+                    value={String(
+                      gallery.length
+                    )}
+                  />
+                </div>
+
+
+                <div className="mt-4 rounded-2xl bg-white/[0.06] p-4">
+
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                    Seller
+                  </p>
+
+
+                  <p className="mt-2 font-semibold text-slate-200">
+                    {property.seller_display_name ??
+                      "Seller"}
+                  </p>
+                </div>
               </div>
-            )}
-            
+
+
+              {isPendingReview ? (
+                <div className="border-t border-white/10 p-6">
+
+                  <form
+                    action={
+                      approveProperty
+                    }
+                  >
+
+                    <input
+                      type="hidden"
+                      name="propertyId"
+                      value={
+                        property.id
+                      }
+                    />
+
+
+                    <p className="text-xs leading-5 text-slate-400">
+                      Approval publishes the listing to the public marketplace.
+                    </p>
+
+
+                    <PendingSubmitButton
+                      idleLabel="Approve & publish"
+                      pendingLabel="Publishing…"
+                      className="mt-4 w-full rounded-full bg-emerald-400 px-6 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-300"
+                    />
+                  </form>
+
+
+                  <div className="my-6 flex items-center gap-3">
+
+                    <div className="h-px flex-1 bg-white/10" />
+
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">
+                      or request changes
+                    </span>
+
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+
+
+                  <form
+                    action={
+                      rejectProperty
+                    }
+                  >
+
+                    <input
+                      type="hidden"
+                      name="propertyId"
+                      value={
+                        property.id
+                      }
+                    />
+
+
+                    <label className="block">
+
+                      <span className="mb-2 block text-sm font-semibold text-slate-300">
+                        Feedback for seller
+                      </span>
+
+
+                      <textarea
+                        required
+                        minLength={5}
+                        name="reviewNotes"
+                        rows={5}
+                        placeholder="Explain what needs to be corrected before resubmission..."
+                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-white/30"
+                      />
+                    </label>
+
+
+                    <p className="mt-2 text-[11px] leading-5 text-slate-500">
+                      Be specific enough that the seller knows what to change.
+                    </p>
+
+
+                    <PendingSubmitButton
+                      idleLabel="Return for changes"
+                      pendingLabel="Returning listing…"
+                      className="mt-4 w-full rounded-full border border-red-400/30 bg-red-400/10 px-6 py-3.5 text-sm font-bold text-red-300 transition hover:bg-red-400/20"
+                    />
+                  </form>
+                </div>
+              ) : (
+                <div className="border-t border-white/10 p-6">
+
+                  <div className="rounded-2xl bg-white/[0.06] p-5 text-sm leading-6 text-slate-300">
+                    This listing has already been reviewed and no longer accepts
+                    moderation actions from this panel.
+                  </div>
+
+
+                  {property.listing_status ===
+                    "active" && (
+                    <Link
+                      href={`/properties/${encodeURIComponent(
+                        property.id
+                      )}`}
+                      className="mt-4 block rounded-full bg-white px-6 py-3 text-center text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+                    >
+                      View public listing
+                    </Link>
+                  )}
+                </div>
+              )}
+            </section>
+
+
+            <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                Moderation snapshot
+              </p>
+
+
+              <div className="mt-4 space-y-3">
+
+                <QuickLine
+                  label="Status"
+                  value={
+                    formatValue(
+                      property.listing_status
+                    )
+                  }
+                />
+
+
+                <QuickLine
+                  label="Verification"
+                  value={`${verifiedCount}/5 verified`}
+                />
+
+
+                <QuickLine
+                  label="Photos"
+                  value={`${gallery.length}`}
+                />
+
+
+                <QuickLine
+                  label="Location"
+                  value={
+                    locationName
+                  }
+                />
+              </div>
+            </section>
           </aside>
         </div>
       </section>
     </main>
   );
 }
+
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div>
+
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+        {
+          eyebrow
+        }
+      </p>
+
+
+      <h2 className="mt-2 text-2xl font-bold tracking-[-0.02em]">
+        {
+          title
+        }
+      </h2>
+
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+        {
+          description
+        }
+      </p>
+    </div>
+  );
+}
+
 
 function VerificationSelect({
   label,
@@ -693,15 +1158,23 @@ function VerificationSelect({
   defaultValue: string;
 }) {
   return (
-    <label className="block rounded-2xl bg-slate-50 p-4">
+    <label className="block rounded-[1.4rem] border border-slate-100 bg-slate-50 p-4">
+
       <span className="mb-3 block text-sm font-semibold text-slate-700">
-        {label}
+        {
+          label
+        }
       </span>
 
+
       <select
-        name={name}
-        defaultValue={defaultValue}
-        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400"
+        name={
+          name
+        }
+        defaultValue={
+          defaultValue
+        }
+        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
       >
         <option value="not_checked">
           Not checked
@@ -719,6 +1192,7 @@ function VerificationSelect({
   );
 }
 
+
 function Field({
   label,
   value,
@@ -727,14 +1201,136 @@ function Field({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-        {label}
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+
+      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+        {
+          label
+        }
       </p>
 
+
       <p className="mt-2 text-sm font-semibold text-slate-800">
-        {value}
+        {
+          value
+        }
       </p>
     </div>
   );
+}
+
+
+function SummaryBox({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-white/[0.06] p-4">
+
+      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+        {
+          label
+        }
+      </p>
+
+
+      <p className="mt-1.5 text-lg font-bold text-white">
+        {
+          value
+        }
+      </p>
+    </div>
+  );
+}
+
+
+function QuickLine({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3 last:border-none last:pb-0">
+
+      <span className="text-xs text-slate-400">
+        {
+          label
+        }
+      </span>
+
+
+      <span className="text-right text-xs font-semibold text-slate-700">
+        {
+          value
+        }
+      </span>
+    </div>
+  );
+}
+
+
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  const className =
+    status ===
+    "active"
+      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+      : status ===
+          "rejected"
+        ? "border-red-100 bg-red-50 text-red-700"
+        : "border-amber-100 bg-amber-50 text-amber-700";
+
+  return (
+    <span
+      className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${className}`}
+    >
+      {
+        formatValue(
+          status
+        )
+      }
+    </span>
+  );
+}
+
+
+function formatValue(
+  value:
+    string
+) {
+  return value
+    .replaceAll(
+      "_",
+      " "
+    )
+    .replace(
+      /\b\w/g,
+      (
+        letter
+      ) =>
+        letter.toUpperCase()
+    );
+}
+
+
+function formatAreaUnit(
+  value:
+    string
+) {
+  if (
+    value ===
+    "sq_ft"
+  ) {
+    return "sq ft";
+  }
+
+  return value;
 }

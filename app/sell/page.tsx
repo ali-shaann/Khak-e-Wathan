@@ -3,10 +3,12 @@ import LocationPickerShell from "@/components/sell/LocationPickerShell";
 import { redirect } from "next/navigation";
 
 import Navbar from "@/components/Navbar";
+import SellerFlowSteps from "@/components/sell/SellerFlowSteps";
+import PendingSubmitButton from "@/components/sell/PendingSubmitButton";
+import CreateListingForm from "@/components/sell/CreateListingForm";
 
 import { createClient } from "@/lib/supabase/server";
 
-import { createListing } from "@/app/sell/actions";
 
 export default async function SellPage({
   searchParams,
@@ -39,27 +41,36 @@ export default async function SellPage({
     <main className="min-h-screen bg-[#f7f8fa] text-slate-950">
       <Navbar />
 
-      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          Sell Property
-        </p>
+      <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
 
-        <h1 className="mt-3 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
-          Tell us about your property.
-        </h1>
+        <SellerFlowSteps
+          current={1}
+        />
 
-        <p className="mt-4 max-w-2xl leading-7 text-slate-500">
-          Your listing will be submitted for review before becoming visible
-          publicly on Khak-e-Wathan.
-        </p>
 
-        {params.error && (
-          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-            {params.error}
-          </div>
-        )}
+        <div className="mt-8">
 
-        <form action={createListing} className="mt-10 space-y-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            Step 1 of 3 · Details
+          </p>
+
+
+          <h1 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
+            Build your property listing.
+          </h1>
+
+
+          <p className="mt-4 max-w-2xl leading-7 text-slate-500">
+            Add the structured details buyers need first. Your draft stays private
+            while you continue to photos and final review.
+          </p>
+        </div>
+
+        <CreateListingForm
+          initialError={
+            params.error
+          }
+        >
           {/* ----------------------------------------------
               BASIC PROPERTY INFO
           ---------------------------------------------- */}
@@ -154,7 +165,9 @@ export default async function SellPage({
             title="Property location"
             description="Mark the approximate location of the property on the map."
           >
-            <LocationPickerShell />
+            <div id="property-location-picker">
+              <LocationPickerShell />
+            </div>
 
             <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
               For the demo, sellers should mark an approximate property
@@ -168,7 +181,7 @@ export default async function SellPage({
           ---------------------------------------------- */}
 
           <FormSection
-            eyebrow="02"
+            eyebrow="03"
             title="Access & utilities"
             description="Important practical information about the property."
           >
@@ -232,7 +245,7 @@ export default async function SellPage({
           ---------------------------------------------- */}
 
           <FormSection
-            eyebrow="03"
+            eyebrow="04"
             title="Land characteristics"
             description="Structured information for the Property Passport."
           >
@@ -280,28 +293,30 @@ export default async function SellPage({
           ---------------------------------------------- */}
 
           <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl sm:p-8">
+
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              Ready to submit?
+              Continue to photos
             </p>
+
 
             <h2 className="mt-2 text-2xl font-bold">
-              Send your property for review.
+              Save these details as a draft.
             </h2>
 
+
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-              The property will not become publicly visible until an
-              administrator approves the listing. Photos and exact map location
-              will be added in the next stage of the seller workflow.
+              This does not submit the listing to an administrator yet. We will
+              create a private draft and take you to Step 2 so you can add photos.
             </p>
 
-            <button
-              type="submit"
+
+            <PendingSubmitButton
+              idleLabel="Save details & continue"
+              pendingLabel="Saving draft…"
               className="mt-7 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-slate-950 shadow-lg transition hover:-translate-y-0.5"
-            >
-              Submit for review
-            </button>
+            />
           </section>
-        </form>
+        </CreateListingForm>
       </section>
     </main>
   );
@@ -329,7 +344,7 @@ function FormSection({
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <div className="mb-7">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          Step {eyebrow}
+          Section {eyebrow}
         </p>
 
         <h2 className="mt-2 text-2xl font-bold">{title}</h2>

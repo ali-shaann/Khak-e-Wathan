@@ -21,9 +21,14 @@ import {
    CREATE LISTING
 ============================================================ */
 
+export type CreateListingState = {
+  error: string | null;
+};
+
 export async function createListing(
+  _previousState: CreateListingState,
   formData: FormData
-) {
+): Promise<CreateListingState> {
   const supabase =
     await createClient();
 
@@ -56,11 +61,10 @@ export async function createListing(
 
 
   if (validationError) {
-    redirect(
-      `/sell?error=${encodeURIComponent(
-        validationError
-      )}`
-    );
+    return {
+      error:
+        validationError,
+    };
   }
 
 
@@ -89,9 +93,10 @@ export async function createListing(
     locationError ||
     !location
   ) {
-    redirect(
-      "/sell?error=Please choose a valid active location."
-    );
+    return {
+      error:
+        "Please choose a valid active location.",
+    };
   }
 
 
@@ -154,9 +159,10 @@ export async function createListing(
       longitude
     )
   ) {
-    redirect(
-      "/sell?error=Please select the property location on the map."
-    );
+    return {
+      error:
+        "Please select the property location on the map.",
+    };
   }
 
 
@@ -259,11 +265,10 @@ export async function createListing(
     );
 
 
-    redirect(
-      `/sell?error=${encodeURIComponent(
-        insertError.message
-      )}`
-    );
+    return {
+      error:
+        insertError.message,
+    };
   }
 
 

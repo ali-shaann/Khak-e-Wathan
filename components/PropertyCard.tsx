@@ -1,105 +1,213 @@
-import { Property } from "@/types/property";
-
-
 import Link from "next/link";
+
+import {
+  Property,
+} from "@/types/property";
+
 
 export default function PropertyCard({
   property,
 }: {
   property: Property;
 }) {
-
   const coverImage =
-  property.images.find(
-    (image) => image.isPrimary
-  ) ?? property.images[0];
-  
+    property.images.find(
+      (
+        image
+      ) =>
+        image.isPrimary
+    ) ??
+    property.images[0];
+
+
+  const verificationValues =
+    Object.values(
+      property.verification
+    );
+
+  const verifiedCount =
+    verificationValues.filter(
+      (
+        status
+      ) =>
+        status ===
+        "verified"
+    ).length;
+
+  const verificationLabel =
+    verificationValues.length > 0
+      ? `${verifiedCount}/${verificationValues.length} checks`
+      : "Checks pending";
+
+
   return (
+    <article className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_8px_30px_-22px_rgba(15,23,42,0.35)] transition duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_24px_55px_-24px_rgba(15,23,42,0.32)]">
 
-    
-    <article className="group overflow-hidden rounded-[1.6rem] border border-slate-200/80 bg-white shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-[0_25px_60px_-25px_rgba(15,23,42,0.35)]">
-      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-  {coverImage ? (
-    <img
-      src={coverImage.url}
-      alt={
-        coverImage.altText ??
-        property.title
-      }
-      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-    />
-  ) : (
-    <div
-      className={`flex h-full items-center justify-center bg-gradient-to-br ${property.gradient}`}
-    >
-      <span className="rounded-full bg-white/80 px-4 py-2 text-xs font-semibold text-slate-500 backdrop-blur">
-        Property photo coming soon
-      </span>
-    </div>
-  )}
-</div>
+      <Link
+        href={`/properties/${property.id}`}
+        className="relative block aspect-[16/10] overflow-hidden bg-slate-100"
+        aria-label={`View ${property.title}`}
+      >
+        {coverImage ? (
+          <img
+            src={
+              coverImage.url
+            }
+            alt={
+              coverImage.altText ??
+              property.title
+            }
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.045]"
+          />
+        ) : (
+          <div
+            className={`flex h-full items-center justify-center bg-gradient-to-br ${property.gradient}`}
+          >
+            <span className="rounded-full border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-500 shadow-sm backdrop-blur">
+              Property photo coming soon
+            </span>
+          </div>
+        )}
 
-      <div className="p-5 sm:p-6">
+
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/25 to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
+
+
+        <span className="absolute left-4 top-4 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur">
+          {
+            property.type
+          }
+        </span>
+      </Link>
+
+
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xl font-bold tracking-tight">
-              {property.price}
+
+          <div className="min-w-0">
+
+            <p className="text-xl font-bold tracking-[-0.025em] text-slate-950">
+              {
+                property.price
+              }
             </p>
 
-            <h3 className="mt-1 text-base font-semibold text-slate-800">
-              {property.title}
+
+            <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-6 text-slate-800">
+              {
+                property.title
+              }
             </h3>
           </div>
 
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-            Verified
+
+          <span className="max-w-[120px] shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700">
+            {
+              verificationLabel
+            }
           </span>
         </div>
 
-        <p className="mt-2 text-sm text-slate-400">
-          {property.location}, Chitral
-        </p>
+
+        <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
+
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden="true"
+            className="h-4 w-4 text-slate-400"
+          >
+            <path
+              d="M10 17s5-4.54 5-9a5 5 0 1 0-10 0c0 4.46 5 9 5 9Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+
+            <circle
+              cx="10"
+              cy="8"
+              r="1.8"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+          </svg>
+
+          <span>
+            {property.location}, Chitral
+          </span>
+        </div>
+
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <Amenity text={property.size} />
+
+          <Amenity
+            text={
+              property.size
+            }
+          />
 
           {property.roadAccess && (
-            <Amenity text="Road" />
+            <Amenity
+              text="Road"
+            />
           )}
 
           {property.waterAvailable && (
-            <Amenity text="Water" />
+            <Amenity
+              text="Water"
+            />
           )}
 
           {property.electricityAvailable && (
-            <Amenity text="Power" />
+            <Amenity
+              text="Power"
+            />
           )}
         </div>
 
-        <div className="mt-5 rounded-2xl bg-slate-50 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Estimated value
-          </p>
 
-          <p className="mt-1 text-sm font-semibold text-slate-700">
-            PKR {property.estimate}
-          </p>
+        <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
+
+          <div className="flex items-center justify-between gap-3">
+
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                Explainable estimate
+              </p>
+
+              <p className="mt-1 text-sm font-semibold text-slate-700">
+                 {
+                  property.estimate
+                }
+              </p>
+            </div>
+
+
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm">
+              ↗
+            </div>
+          </div>
         </div>
 
-        <Link
-         href={`/properties/${property.id}`}
-         className="mt-5 flex w-full items-center justify-between border-t border-slate-100 pt-4 text-sm font-semibold"
-        >
-         View property
 
-            <span className="transition duration-300 group-hover:translate-x-1">
-             →
-            </span>
+        <Link
+          href={`/properties/${property.id}`}
+          className="mt-auto flex w-full items-center justify-between border-t border-slate-100 pt-5 text-sm font-semibold text-slate-800 transition group-hover:text-emerald-700"
+        >
+          View property
+
+          <span className="transition duration-300 group-hover:translate-x-1">
+            →
+          </span>
         </Link>
       </div>
     </article>
   );
 }
+
 
 function Amenity({
   text,
@@ -107,8 +215,10 @@ function Amenity({
   text: string;
 }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-      {text}
+    <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-600">
+      {
+        text
+      }
     </span>
   );
 }

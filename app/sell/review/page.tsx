@@ -4,6 +4,8 @@ import {
 } from "next/navigation";
 
 import Navbar from "@/components/Navbar";
+import SellerFlowSteps from "@/components/sell/SellerFlowSteps";
+import PendingSubmitButton from "@/components/sell/PendingSubmitButton";
 
 import {
   createClient,
@@ -90,23 +92,72 @@ export default async function ReviewListingPage({
   }
 
   const {
-  data: propertyImages,
-} = await supabase
-  .from("property_images")
-  .select(`
-    id,
-    storage_path,
-    alt_text,
-    display_order,
-    is_primary
-  `)
-  .eq("property_id", property.id)
-  .order("display_order", {
-    ascending: true,
-  });
+    data:
+      propertyImages,
+
+    error:
+      propertyImagesError,
+  } =
+    await supabase
+      .from(
+        "property_images"
+      )
+      .select(`
+        id,
+        storage_path,
+        alt_text,
+        display_order,
+        is_primary
+      `)
+      .eq(
+        "property_id",
+        property.id
+      )
+      .order(
+        "display_order",
+        {
+          ascending:
+            true,
+        }
+      );
+
+
+  if (
+    propertyImagesError
+  ) {
+    console.error(
+      "REVIEW IMAGE LOAD ERROR:",
+      propertyImagesError
+    );
+
+
+    redirect(
+      `/sell/photos?property=${encodeURIComponent(
+        property.id
+      )}&error=${encodeURIComponent(
+        "Could not verify the property photos. Please try again."
+      )}`
+    );
+  }
+
+
+  if (
+    !propertyImages ||
+    propertyImages.length <
+      1
+  ) {
+    redirect(
+      `/sell/photos?property=${encodeURIComponent(
+        property.id
+      )}&error=${encodeURIComponent(
+        "Add at least one property photo before continuing to final review."
+      )}`
+    );
+  }
+
 
 const reviewImages =
-  (propertyImages ?? []).map((image) => {
+  propertyImages.map((image) => {
     const {
       data: publicData,
     } = supabase.storage
@@ -156,56 +207,30 @@ const locationName =
       <Navbar />
 
       <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-        {/* Progress */}
-        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
-          <span>
-            Property
-          </span>
+        <SellerFlowSteps
+          current={3}
+          propertyId={property.id}
+        />
 
-          <span>→</span>
-
-          <span>
-            Location
-          </span>
-
-          <span>→</span>
-
-          <span>
-            Details
-          </span>
-
-          <span>→</span>
-
-          <Link
-            href={`/sell/photos?property=${encodeURIComponent(
-              property.id
-            )}`}
-            className="transition hover:text-slate-700"
-          >
-            Photos
-          </Link>
-
-          <span>→</span>
-
-          <span className="font-semibold text-slate-950">
-            Review
-          </span>
-        </div>
 
         <div className="mt-8">
+
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-            Step 06
+            Step 3 of 3 · Final review
           </p>
 
-          <h1 className="mt-3 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
-            Review your property.
+
+          <h1 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-5xl">
+            Review before submitting.
           </h1>
 
+
           <p className="mt-4 max-w-2xl leading-7 text-slate-500">
-            Check the information below before sending
-            your listing to Khak-e-Wathan for review.
+            Check the listing exactly as it will enter the moderation queue.
+            You can still return to photos or details before submitting.
           </p>
         </div>
+
 
         {params.error && (
           <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
@@ -484,12 +509,11 @@ const locationName =
                 }
               />
 
-              <button
-                type="submit"
+              <PendingSubmitButton
+                idleLabel="Submit for review"
+                pendingLabel="Submitting…"
                 className="w-full rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 sm:w-auto"
-              >
-                Submit for review
-              </button>
+              />
             </form>
           </div>
         </section>

@@ -59,7 +59,6 @@ const LOCATION_ALIASES: Record<
   "chitral-city": [
     "chitral city",
     "chitral town",
-    "chitral",
   ],
 
   drosh: [
@@ -99,14 +98,19 @@ export function parseNaturalSearch(
       ),
 
     irrigationAvailable:
-  detectRequirement(
-    normalized,
-    [
-      "with irrigation",
-      "irrigation available",
-      "irrigated",
-    ]
-  ),
+      detectRequirement(
+        normalized,
+        [
+          "with irrigation",
+          "irrigation available",
+          "irrigated",
+        ],
+        [
+          "without irrigation",
+          "no irrigation",
+          "irrigation not available",
+        ]
+      ),
 
     propertyType:
       detectPropertyType(
@@ -133,6 +137,14 @@ export function parseNaturalSearch(
           "road available",
           "vehicle access",
           "car access",
+        ],
+        [
+          "without road access",
+          "no road access",
+          "without road",
+          "road not available",
+          "no vehicle access",
+          "no car access",
         ]
       ),
 
@@ -144,6 +156,12 @@ export function parseNaturalSearch(
           "water available",
           "water access",
           "water supply",
+        ],
+        [
+          "without water",
+          "no water",
+          "water not available",
+          "no water supply",
         ]
       ),
 
@@ -155,6 +173,13 @@ export function parseNaturalSearch(
           "electricity available",
           "electricity connection",
           "power available",
+        ],
+        [
+          "without electricity",
+          "no electricity",
+          "electricity not available",
+          "without power",
+          "no power",
         ]
       ),
 
@@ -183,14 +208,6 @@ export function filterPropertiesByIntent(
       ) {
         return false;
       }
-
-      if (
-  intent.irrigationAvailable ===
-    true &&
-  !property.irrigationAvailable
-) {
-  return false;
-}
 
       if (
         intent.propertyType &&
@@ -261,6 +278,16 @@ if (
 }
 
 
+if (
+  intent.internetQuality !==
+    null &&
+  property.internetQuality !==
+    intent.internetQuality
+) {
+  return false;
+}
+
+
       return true;
     }
   );
@@ -277,12 +304,15 @@ export function describeIntent(
   const labels:
     string[] = [];
   if (
-  intent.irrigationAvailable
-) {
-  labels.push(
-    "Irrigation"
-  );
-}
+    intent.irrigationAvailable !==
+    null
+  ) {
+    labels.push(
+      intent.irrigationAvailable
+        ? "Irrigation"
+        : "No irrigation"
+    );
+  }
 
   if (
     intent.locationSlug
@@ -329,28 +359,37 @@ export function describeIntent(
 
 
   if (
-    intent.roadAccess
+    intent.roadAccess !==
+    null
   ) {
     labels.push(
-      "Road access"
+      intent.roadAccess
+        ? "Road access"
+        : "No road access"
     );
   }
 
 
   if (
-    intent.waterAvailable
+    intent.waterAvailable !==
+    null
   ) {
     labels.push(
-      "Water"
+      intent.waterAvailable
+        ? "Water"
+        : "No water"
     );
   }
 
 
   if (
-    intent.electricityAvailable
+    intent.electricityAvailable !==
+    null
   ) {
     labels.push(
-      "Electricity"
+      intent.electricityAvailable
+        ? "Electricity"
+        : "No electricity"
     );
   }
 
@@ -576,8 +615,20 @@ function moneyToPkr(
 
 function detectRequirement(
   query: string,
-  positivePhrases: string[]
+  positivePhrases: string[],
+  negativePhrases:
+    string[] = []
 ): boolean | null {
+  if (
+    containsAny(
+      query,
+      negativePhrases
+    )
+  ) {
+    return false;
+  }
+
+
   if (
     containsAny(
       query,
@@ -586,6 +637,7 @@ function detectRequirement(
   ) {
     return true;
   }
+
 
   return null;
 }
