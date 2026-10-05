@@ -28,6 +28,8 @@ select
   pv.photos,
   pv.ownership_evidence,
   pv.physical_inspection,
+  pv.reviewer_display_name,
+  pv.reviewed_at,
   count(pi.id) as image_count
 from public.properties p
 join public.locations l on l.id = p.location_id
@@ -38,5 +40,10 @@ group by
   p.id, p.title, l.name, p.property_type, p.price_pkr,
   p.area_value, p.area_unit,
   pv.seller_identity, pv.property_location, pv.photos,
-  pv.ownership_evidence, pv.physical_inspection
+  pv.ownership_evidence, pv.physical_inspection,
+  pv.reviewer_display_name, pv.reviewed_at
 order by l.name, p.created_at desc;
+
+select
+  count(*) as inquiry_count
+from public.property_inquiries;

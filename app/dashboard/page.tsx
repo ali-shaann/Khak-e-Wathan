@@ -15,6 +15,11 @@ import {
   logout,
 } from "@/app/login/actions";
 
+import {
+  updateListingStatus,
+  updateInquiryStatus,
+} from "@/app/dashboard/actions";
+
 
 export default async function DashboardPage({
   searchParams,
@@ -104,6 +109,99 @@ export default async function DashboardPage({
   const listings =
     properties ?? [];
 
+  const propertyIds =
+    listings.map(
+      (
+        listing
+      ) =>
+        listing.id
+    );
+
+
+  const {
+    data:
+      inquiryRows,
+    error:
+      inquiriesError,
+  } =
+    propertyIds.length >
+      0
+      ? await supabase
+          .from(
+            "property_inquiries"
+          )
+          .select(`
+            id,
+            property_id,
+            buyer_name,
+            buyer_phone,
+            buyer_email,
+            message,
+            status,
+            created_at
+          `)
+          .in(
+            "property_id",
+            propertyIds
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+      : {
+          data:
+            [],
+
+          error:
+            null,
+        };
+
+
+  if (
+    inquiriesError
+  ) {
+    console.error(
+      "DASHBOARD INQUIRIES ERROR:",
+      inquiriesError
+    );
+  }
+
+
+  const inquiries =
+    (
+      inquiryRows ??
+      []
+    ) as DashboardInquiry[];
+
+
+  const inquiryCounts =
+    inquiries.reduce(
+      (
+        counts,
+        inquiry
+      ) => {
+        counts.set(
+          inquiry.property_id,
+          (
+            counts.get(
+              inquiry.property_id
+            ) ??
+            0
+          ) +
+            1
+        );
+
+        return counts;
+      },
+      new Map<
+        string,
+        number
+      >()
+    );
+
 
   const countStatus = (
     status: string
@@ -136,6 +234,24 @@ export default async function DashboardPage({
     countStatus(
       "rejected"
     );
+
+  const newInquiryCount =
+    inquiries.filter(
+      (
+        inquiry
+      ) =>
+        inquiry.status ===
+        "new"
+    ).length;
+
+  const contactedInquiryCount =
+    inquiries.filter(
+      (
+        inquiry
+      ) =>
+        inquiry.status ===
+        "contacted"
+    ).length;
 
 
   return (
@@ -174,6 +290,25 @@ export default async function DashboardPage({
 
 
             <div className="flex flex-wrap gap-3">
+
+              {inquiries.length >
+                0 && (
+                <Link
+                  href="#buyer-inquiries"
+                  className="rounded-full border border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-100"
+                >
+                  {newInquiryCount >
+                  0
+                    ? `${newInquiryCount} new ${
+                        newInquiryCount ===
+                        1
+                          ? "inquiry"
+                          : "inquiries"
+                      }`
+                    : "View inquiries"}
+                </Link>
+              )}
+
 
               <Link
                 href="/sell"
@@ -234,7 +369,7 @@ export default async function DashboardPage({
         )}
 
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
 
           <DashboardStat
             label="All listings"
@@ -276,6 +411,18 @@ export default async function DashboardPage({
             hint="Review feedback received"
             attention={
               rejectedCount >
+              0
+            }
+          />
+
+          <DashboardStat
+            label="New inquiries"
+            value={
+              newInquiryCount
+            }
+            hint={`${inquiries.length} total viewing requests`}
+            accent={
+              newInquiryCount >
               0
             }
           />
@@ -392,12 +539,235 @@ export default async function DashboardPage({
                     property={
                       property
                     }
+                    inquiryCount={
+                      inquiryCounts.get(
+                        property.id
+                      ) ??
+                      0
+                    }
                   />
                 )
               )}
             </div>
           )}
         </section>
+
+
+        {inquiries.length >
+          0 && (
+          <section
+            id="buyer-inquiries"
+            className="mt-6 scroll-mt-28 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+          >
+
+            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+
+              <div>
+
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  Buyer interest
+                </p>
+
+
+                <h2 className="mt-2 text-2xl font-bold tracking-[-0.02em]">
+                  Viewing requests
+                </h2>
+
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  Contact details are private to you and platform administrators.
+                  Follow up outside the platform only after reviewing the request.
+                </p>
+              </div>
+
+
+              <div className="flex flex-wrap gap-2">
+                <InquirySummaryPill
+                  label="New"
+                  value={
+                    newInquiryCount
+                  }
+                  tone="emerald"
+                />
+
+                <InquirySummaryPill
+                  label="Contacted"
+                  value={
+                    contactedInquiryCount
+                  }
+                  tone="sky"
+                />
+              </div>
+            </div>
+
+
+            <div className="mt-7 grid gap-4 lg:grid-cols-2">
+              {inquiries.map(
+                (
+                  inquiry
+                ) => {
+                  const listing =
+                    listings.find(
+                      (
+                        item
+                      ) =>
+                        item.id ===
+                        inquiry.property_id
+                    );
+
+                  const statusDisplay =
+                    getInquiryStatusDisplay(
+                      inquiry.status
+                    );
+
+
+                  return (
+                    <article
+                      key={
+                        inquiry.id
+                      }
+                      className={`rounded-[1.5rem] border p-5 transition hover:-translate-y-0.5 hover:shadow-md ${statusDisplay.cardClassName}`}
+                    >
+
+                      <div className="flex items-start justify-between gap-4">
+
+                        <div>
+                          <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${statusDisplay.badgeClassName}`}>
+                            {
+                              statusDisplay.label
+                            }
+                          </span>
+
+
+                          <h3 className="mt-3 font-bold">
+                            {
+                              inquiry.buyer_name
+                            }
+                          </h3>
+
+
+                          <p className="mt-1 text-xs text-slate-400">
+                            For{" "}
+                            {listing?.title ??
+                              "property listing"}
+                          </p>
+                        </div>
+
+
+                        <p className="shrink-0 text-xs text-slate-400">
+                          {new Date(
+                            inquiry.created_at
+                          ).toLocaleDateString()}
+                        </p>
+                      </div>
+
+
+                      <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-600">
+                        {
+                          inquiry.message
+                        }
+                      </p>
+
+
+                      <div className="mt-4 grid gap-2 rounded-2xl border border-slate-200/80 bg-white/75 p-3 text-xs text-slate-500">
+                        {inquiry.buyer_phone && (
+                          <div className="flex items-center justify-between gap-4">
+                            <span>
+                              Phone
+                            </span>
+
+                            <span className="truncate font-semibold text-slate-700">
+                              {
+                                inquiry.buyer_phone
+                              }
+                            </span>
+                          </div>
+                        )}
+
+
+                        {inquiry.buyer_email && (
+                          <div className="flex items-center justify-between gap-4">
+                            <span>
+                              Email
+                            </span>
+
+                            <span className="truncate font-semibold text-slate-700">
+                              {
+                                inquiry.buyer_email
+                              }
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {inquiry.buyer_phone && (
+                          <a
+                            href={`tel:${inquiry.buyer_phone}`}
+                            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                          >
+                            Call buyer
+                          </a>
+                        )}
+
+
+                        {inquiry.buyer_email && (
+                          <a
+                            href={`mailto:${inquiry.buyer_email}`}
+                            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                          >
+                            Email buyer
+                          </a>
+                        )}
+
+
+                        {inquiry.status !==
+                          "closed" && (
+                          <form
+                            action={
+                              updateInquiryStatus
+                            }
+                          >
+                            <input
+                              type="hidden"
+                              name="inquiryId"
+                              value={
+                                inquiry.id
+                              }
+                            />
+
+                            <input
+                              type="hidden"
+                              name="status"
+                              value={
+                                inquiry.status ===
+                                "new"
+                                  ? "contacted"
+                                  : "closed"
+                              }
+                            />
+
+                            <PendingSubmitButton
+                              idleLabel={
+                                inquiry.status ===
+                                "new"
+                                  ? "Mark contacted"
+                                  : "Close inquiry"
+                              }
+                              pendingLabel="Updating…"
+                              className="rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                            />
+                          </form>
+                        )}
+                      </div>
+                    </article>
+                  );
+                }
+              )}
+            </div>
+          </section>
+        )}
 
 
         {profile?.role ===
@@ -449,12 +819,26 @@ type DashboardListing = {
   created_at: string;
 };
 
+type DashboardInquiry = {
+  id: string;
+  property_id: string;
+  buyer_name: string;
+  buyer_phone: string | null;
+  buyer_email: string | null;
+  message: string;
+  status: string;
+  created_at: string;
+};
+
 
 function ListingCard({
   property,
+  inquiryCount,
 }: {
   property:
     DashboardListing;
+  inquiryCount:
+    number;
 }) {
   const isRejected =
     property.listing_status ===
@@ -529,6 +913,18 @@ function ListingCard({
       )}
 
 
+      {inquiryCount >
+        0 && (
+        <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          {inquiryCount}{" "}
+          {inquiryCount ===
+          1
+            ? "buyer inquiry"
+            : "buyer inquiries"}
+        </div>
+      )}
+
+
       <div className="mt-5 border-t border-slate-100 pt-4">
 
         {property.listing_status ===
@@ -583,14 +979,51 @@ function ListingCard({
 
         {property.listing_status ===
           "active" && (
-          <Link
-            href={`/properties/${encodeURIComponent(
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/properties/${encodeURIComponent(
+                property.id
+              )}`}
+              className="rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+            >
+              View public listing
+            </Link>
+
+
+            <ListingStatusButton
+              propertyId={
+                property.id
+              }
+              status="sold"
+              label="Mark sold"
+            />
+
+
+            <ListingStatusButton
+              propertyId={
+                property.id
+              }
+              status="archived"
+              label="Archive"
+            />
+          </div>
+        )}
+
+
+        {[
+          "sold",
+          "archived",
+        ].includes(
+          property.listing_status
+        ) && (
+          <ListingStatusButton
+            propertyId={
               property.id
-            )}`}
-            className="text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
-          >
-            View public listing →
-          </Link>
+            }
+            status="active"
+            label="Reactivate listing"
+            primary
+          />
         )}
       </div>
     </article>
@@ -603,17 +1036,21 @@ function DashboardStat({
   value,
   hint,
   attention = false,
+  accent = false,
 }: {
   label: string;
   value: number;
   hint: string;
   attention?: boolean;
+  accent?: boolean;
 }) {
   return (
     <div
       className={`rounded-[1.5rem] border p-5 shadow-sm ${
         attention
           ? "border-red-200 bg-red-50"
+          : accent
+            ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white"
           : "border-slate-200 bg-white"
       }`}
     >
@@ -622,6 +1059,8 @@ function DashboardStat({
         className={`text-3xl font-bold tracking-[-0.03em] ${
           attention
             ? "text-red-900"
+            : accent
+              ? "text-emerald-900"
             : "text-slate-950"
         }`}
       >
@@ -644,6 +1083,136 @@ function DashboardStat({
         }
       </p>
     </div>
+  );
+}
+
+
+function InquirySummaryPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone:
+    | "emerald"
+    | "sky";
+}) {
+  const className =
+    tone ===
+    "emerald"
+      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+      : "border-sky-100 bg-sky-50 text-sky-700";
+
+
+  return (
+    <span className={`rounded-full border px-3.5 py-2 text-xs font-semibold ${className}`}>
+      {value} {
+        label
+      }
+    </span>
+  );
+}
+
+
+function getInquiryStatusDisplay(
+  status: string
+) {
+  if (
+    status ===
+    "new"
+  ) {
+    return {
+      label:
+        "New",
+
+      badgeClassName:
+        "bg-emerald-100 text-emerald-700",
+
+      cardClassName:
+        "border-emerald-200 bg-emerald-50/35",
+    };
+  }
+
+
+  if (
+    status ===
+    "contacted"
+  ) {
+    return {
+      label:
+        "Contacted",
+
+      badgeClassName:
+        "bg-sky-100 text-sky-700",
+
+      cardClassName:
+        "border-sky-100 bg-sky-50/30",
+    };
+  }
+
+
+  return {
+    label:
+      "Closed",
+
+    badgeClassName:
+      "bg-slate-200 text-slate-600",
+
+    cardClassName:
+      "border-slate-200 bg-slate-50/70",
+  };
+}
+
+
+function ListingStatusButton({
+  propertyId,
+  status,
+  label,
+  primary = false,
+}: {
+  propertyId: string;
+  status:
+    | "active"
+    | "sold"
+    | "archived";
+  label: string;
+  primary?: boolean;
+}) {
+  return (
+    <form
+      action={
+        updateListingStatus
+      }
+    >
+      <input
+        type="hidden"
+        name="propertyId"
+        value={
+          propertyId
+        }
+      />
+
+      <input
+        type="hidden"
+        name="status"
+        value={
+          status
+        }
+      />
+
+      <PendingSubmitButton
+        idleLabel={
+          label
+        }
+        pendingLabel="Updating…"
+        className={
+          primary
+            ? "rounded-full bg-slate-950 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+            : "rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
+        }
+      />
+    </form>
   );
 }
 

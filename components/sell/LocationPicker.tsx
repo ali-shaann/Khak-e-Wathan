@@ -57,7 +57,13 @@ const markerIcon =
   });
 
 
-export default function LocationPicker() {
+export default function LocationPicker({
+  initialLatitude = null,
+  initialLongitude = null,
+}: {
+  initialLatitude?: number | null;
+  initialLongitude?: number | null;
+}) {
   const [
     position,
     setPosition,
@@ -65,9 +71,22 @@ export default function LocationPicker() {
     useState<{
       lat: number;
       lng: number;
-    } | null>(
-      null
-    );
+    } | null>(() => {
+      if (
+        initialLatitude ===
+          null ||
+        initialLongitude ===
+          null
+      ) {
+        return null;
+      }
+
+
+      return clampToChitral(
+        initialLatitude,
+        initialLongitude
+      );
+    });
 
 
   return (
@@ -77,10 +96,17 @@ export default function LocationPicker() {
 
         <MapContainer
           center={
-            CHITRAL_CENTER
+            position
+              ? [
+                  position.lat,
+                  position.lng,
+                ]
+              : CHITRAL_CENTER
           }
           zoom={
-            CHITRAL_MIN_ZOOM
+            position
+              ? 14
+              : CHITRAL_MIN_ZOOM
           }
           minZoom={
             CHITRAL_MIN_ZOOM

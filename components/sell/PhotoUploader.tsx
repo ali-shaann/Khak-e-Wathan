@@ -107,6 +107,16 @@ export default function PhotoUploader({
       null
     );
 
+  const [
+    updatingPrimaryImageId,
+    setUpdatingPrimaryImageId,
+  ] =
+    useState<
+      string | null
+    >(
+      null
+    );
+
 
   const [
     loading,
@@ -143,6 +153,8 @@ export default function PhotoUploader({
     loading ||
     uploading ||
     removingImageId !==
+      null ||
+    updatingPrimaryImageId !==
       null;
 
 
@@ -939,6 +951,106 @@ export default function PhotoUploader({
   }
 
 
+  async function setPrimaryImage(
+    image:
+      DisplayImage
+  ) {
+    if (
+      interactionLocked ||
+      image.is_primary
+    ) {
+      return;
+    }
+
+
+    setError(
+      ""
+    );
+
+    setNotice(
+      ""
+    );
+
+    setUpdatingPrimaryImageId(
+      image.id
+    );
+
+
+    try {
+      const {
+        data,
+        error:
+          primaryError,
+      } =
+        await supabase.rpc(
+          "seller_set_primary_property_image",
+          {
+            p_property_id:
+              propertyId,
+
+            p_image_id:
+              image.id,
+          }
+        );
+
+
+      if (
+        primaryError ||
+        data !==
+          true
+      ) {
+        console.error(
+          "SET PRIMARY IMAGE ERROR:",
+          primaryError
+        );
+
+
+        throw new Error(
+          primaryError
+            ?.message ??
+            "The cover photo could not be updated."
+        );
+      }
+
+
+      setImages(
+        (
+          current
+        ) =>
+          current.map(
+            (
+              item
+            ) => ({
+              ...item,
+
+              is_primary:
+                item.id ===
+                image.id,
+            })
+          )
+      );
+
+
+      setNotice(
+        "Cover photo updated."
+      );
+    } catch (
+      primaryFailure
+    ) {
+      setError(
+        primaryFailure instanceof
+        Error
+          ? primaryFailure.message
+          : "The cover photo could not be updated."
+      );
+    } finally {
+      setUpdatingPrimaryImageId(
+        null
+      );
+    }
+  }
+
+
   /* ========================================================
      UI
   ======================================================== */
@@ -1130,6 +1242,10 @@ export default function PhotoUploader({
                       removingImageId ===
                       image.id;
 
+                    const updatingPrimary =
+                      updatingPrimaryImageId ===
+                      image.id;
+
 
                     return (
                       <article
@@ -1195,20 +1311,42 @@ export default function PhotoUploader({
                           </p>
 
 
-                          <button
-                            type="button"
-                            disabled={
-                              interactionLocked
-                            }
-                            onClick={() =>
-                              removeImage(
-                                image
-                              )
-                            }
-                            className="rounded-full border border-red-100 bg-red-50 px-3 py-2 text-[11px] font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {!image.is_primary && (
+                              <button
+                                type="button"
+                                disabled={
+                                  interactionLocked
+                                }
+                                onClick={() =>
+                                  setPrimaryImage(
+                                    image
+                                  )
+                                }
+                                className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {updatingPrimary
+                                  ? "Updating…"
+                                  : "Make cover"}
+                              </button>
+                            )}
+
+
+                            <button
+                              type="button"
+                              disabled={
+                                interactionLocked
+                              }
+                              onClick={() =>
+                                removeImage(
+                                  image
+                                )
+                              }
+                              className="rounded-full border border-red-100 bg-red-50 px-3 py-2 text-[11px] font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </article>
                     );
@@ -1348,6 +1486,8 @@ export default function PhotoUploader({
                 ? "Finish upload first"
                 : removingImageId
                   ? "Updating gallery…"
+                  : updatingPrimaryImageId
+                    ? "Updating cover…"
                   : loading
                     ? "Loading photos…"
                     : "Continue to review"}

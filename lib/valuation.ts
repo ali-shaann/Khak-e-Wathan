@@ -498,18 +498,21 @@ export function calculateValuation(
      CONFIDENCE
   -------------------------------------------------------- */
 
-  const confidence =
-    calculateConfidence(
+  const dataCompleteness =
+    calculateDataCompleteness(
       input
     );
 
   /*
-    Wider estimate ranges when confidence is lower.
+    Wider estimate ranges when less structured information
+    is available. This is not statistical model confidence.
   */
   const rangePercent =
-    confidence === "high"
+    dataCompleteness ===
+    "high"
       ? 0.07
-      : confidence === "medium"
+      : dataCompleteness ===
+          "medium"
         ? 0.1
         : 0.14;
 
@@ -546,7 +549,7 @@ export function calculateValuation(
 
     totalAdjustmentPercent,
 
-    confidence,
+    dataCompleteness,
 
     factors,
   };
@@ -557,7 +560,7 @@ export function calculateValuation(
    CONFIDENCE
 ============================================================ */
 
-function calculateConfidence(
+function calculateDataCompleteness(
   input: ValuationInput
 ):
   | "low"

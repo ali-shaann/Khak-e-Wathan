@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/core.test.mjs",
+    "demo:users": "node scripts/prepare-demo-users.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

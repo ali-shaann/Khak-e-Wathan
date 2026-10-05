@@ -257,6 +257,114 @@ export async function updateVerification(
       "physicalInspection"
     );
 
+  const sellerIdentityNote =
+    getVerificationNote(
+      formData,
+      "sellerIdentityNote"
+    );
+
+  const propertyLocationNote =
+    getVerificationNote(
+      formData,
+      "propertyLocationNote"
+    );
+
+  const photosNote =
+    getVerificationNote(
+      formData,
+      "photosNote"
+    );
+
+  const ownershipEvidenceNote =
+    getVerificationNote(
+      formData,
+      "ownershipEvidenceNote"
+    );
+
+  const physicalInspectionNote =
+    getVerificationNote(
+      formData,
+      "physicalInspectionNote"
+    );
+
+  const missingEvidenceNote =
+    [
+      {
+        label:
+          "seller identity",
+
+        status:
+          sellerIdentity,
+
+        note:
+          sellerIdentityNote,
+      },
+      {
+        label:
+          "property location",
+
+        status:
+          propertyLocation,
+
+        note:
+          propertyLocationNote,
+      },
+      {
+        label:
+          "photos",
+
+        status:
+          photos,
+
+        note:
+          photosNote,
+      },
+      {
+        label:
+          "ownership evidence",
+
+        status:
+          ownershipEvidence,
+
+        note:
+          ownershipEvidenceNote,
+      },
+      {
+        label:
+          "physical inspection",
+
+        status:
+          physicalInspection,
+
+        note:
+          physicalInspectionNote,
+      },
+    ].find(
+      (
+        item
+      ) =>
+        item.status ===
+          "verified" &&
+        (
+          item.note?.length ??
+          0
+        ) <
+          5
+    );
+
+
+  if (
+    missingEvidenceNote
+  ) {
+    redirect(
+      `/admin/properties/${encodeURIComponent(
+        propertyId
+      )}?error=${encodeURIComponent(
+        `Add a short evidence note before marking ${missingEvidenceNote.label} as verified.`
+      )}`
+    );
+  }
+
   const {
     supabase,
   } = await requireAdmin();
@@ -284,6 +392,21 @@ export async function updateVerification(
 
       p_physical_inspection:
         physicalInspection,
+
+      p_seller_identity_note:
+        sellerIdentityNote,
+
+      p_property_location_note:
+        propertyLocationNote,
+
+      p_photos_note:
+        photosNote,
+
+      p_ownership_evidence_note:
+        ownershipEvidenceNote,
+
+      p_physical_inspection_note:
+        physicalInspectionNote,
     }
   );
 
@@ -355,4 +478,35 @@ function getVerificationStatus(
   }
 
   return "not_checked";
+}
+
+
+function getVerificationNote(
+  formData: FormData,
+  key: string
+) {
+  const value =
+    String(
+      formData.get(
+        key
+      ) ??
+        ""
+    ).trim();
+
+
+  if (
+    value.length >
+    300
+  ) {
+    return value.slice(
+      0,
+      300
+    );
+  }
+
+
+  return (
+    value ||
+    null
+  );
 }

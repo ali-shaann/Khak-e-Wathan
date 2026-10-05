@@ -167,6 +167,46 @@ values
   ('demo-balach-006', 'verified', 'verified', 'verified', 'pending', 'pending'),
   ('demo-balach-007', 'verified', 'pending', 'verified', 'verified', 'not_checked');
 
+update public.property_verifications
+set
+  seller_identity_note =
+    case seller_identity
+      when 'verified' then 'Demo identity evidence was reviewed.'
+      when 'pending' then 'Identity evidence is awaiting review.'
+      else null
+    end,
+  property_location_note =
+    case property_location
+      when 'verified' then 'The submitted area and map point were reviewed.'
+      when 'pending' then 'The submitted map point needs confirmation.'
+      else null
+    end,
+  photos_note =
+    case photos
+      when 'verified' then 'The representative photo set was reviewed.'
+      when 'pending' then 'Additional photo review is pending.'
+      else null
+    end,
+  ownership_evidence_note =
+    case ownership_evidence
+      when 'verified' then 'Demo ownership evidence was recorded as reviewed.'
+      when 'pending' then 'Ownership evidence needs further review.'
+      else null
+    end,
+  physical_inspection_note =
+    case physical_inspection
+      when 'verified' then 'A demo inspection record was marked complete.'
+      when 'pending' then 'Physical inspection is still pending.'
+      else null
+    end,
+  reviewer_display_name =
+    'Khak-e-Wathan demo review team',
+  reviewed_at =
+    now(),
+  updated_at =
+    now()
+where property_id like 'demo-%';
+
 commit;
 
 -- Expected after this SQL:

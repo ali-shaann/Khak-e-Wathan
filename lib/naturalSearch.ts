@@ -38,6 +38,12 @@ irrigationAvailable:
     | null;
 };
 
+export type PropertyIntentMatch = {
+  property: Property;
+  score: number;
+  differences: string[];
+};
+
 
 /* ============================================================
    LOCATION ALIASES
@@ -290,6 +296,208 @@ if (
 
       return true;
     }
+  );
+}
+
+
+export function rankPropertiesByIntent(
+  properties: Property[],
+  intent: NaturalSearchIntent,
+  limit = 3
+): PropertyIntentMatch[] {
+  const ranked =
+    properties.map(
+      (
+        property
+      ) =>
+        scorePropertyForIntent(
+          property,
+          intent
+        )
+    );
+
+
+  return ranked
+    .filter(
+      (
+        result
+      ) =>
+        result.score >
+        0
+    )
+    .sort(
+      (
+        first,
+        second
+      ) =>
+        second.score -
+          first.score ||
+        first.differences.length -
+          second.differences.length ||
+        first.property.pricePkr -
+          second.property.pricePkr
+    )
+    .slice(
+      0,
+      limit
+    );
+}
+
+
+function scorePropertyForIntent(
+  property: Property,
+  intent: NaturalSearchIntent
+): PropertyIntentMatch {
+  let matched =
+    0;
+
+  let total =
+    0;
+
+  const differences:
+    string[] = [];
+
+
+  function compare(
+    applies: boolean,
+    matches: boolean,
+    difference: string
+  ) {
+    if (!applies) {
+      return;
+    }
+
+    total++;
+
+    if (matches) {
+      matched++;
+    } else {
+      differences.push(
+        difference
+      );
+    }
+  }
+
+
+  compare(
+    intent.locationSlug !==
+      null,
+    property.locationSlug ===
+      intent.locationSlug,
+    `Located in ${property.location}`
+  );
+
+  compare(
+    intent.propertyType !==
+      null,
+    property.type ===
+      intent.propertyType,
+    `${property.type} instead of ${intent.propertyType}`
+  );
+
+  compare(
+    intent.maxPricePkr !==
+      null,
+    intent.maxPricePkr !==
+      null &&
+      property.pricePkr <=
+        intent.maxPricePkr,
+    intent.maxPricePkr !==
+      null
+      ? `${formatPkr(
+          Math.max(
+            0,
+            property.pricePkr -
+              intent.maxPricePkr
+          )
+        )} above budget`
+      : ""
+  );
+
+  compare(
+    intent.minPricePkr !==
+      null,
+    intent.minPricePkr !==
+      null &&
+      property.pricePkr >=
+        intent.minPricePkr,
+    "Below the requested minimum price"
+  );
+
+  compareBoolean(
+    intent.roadAccess,
+    property.roadAccess,
+    "road access",
+    compare
+  );
+
+  compareBoolean(
+    intent.waterAvailable,
+    property.waterAvailable,
+    "water",
+    compare
+  );
+
+  compareBoolean(
+    intent.electricityAvailable,
+    property.electricityAvailable,
+    "electricity",
+    compare
+  );
+
+  compareBoolean(
+    intent.irrigationAvailable,
+    property.irrigationAvailable,
+    "irrigation",
+    compare
+  );
+
+  compare(
+    intent.internetQuality !==
+      null,
+    property.internetQuality ===
+      intent.internetQuality,
+    property.internetQuality
+      ? `${property.internetQuality} connectivity instead of ${intent.internetQuality}`
+      : "Connectivity is not specified"
+  );
+
+
+  return {
+    property,
+
+    score:
+      total >
+      0
+        ? matched /
+          total
+        : 0,
+
+    differences,
+  };
+}
+
+
+function compareBoolean(
+  expected:
+    | boolean
+    | null,
+  actual: boolean,
+  label: string,
+  compare: (
+    applies: boolean,
+    matches: boolean,
+    difference: string
+  ) => void
+) {
+  compare(
+    expected !==
+      null,
+    expected ===
+      actual,
+    expected
+      ? `No ${label}`
+      : `Includes ${label}`
   );
 }
 

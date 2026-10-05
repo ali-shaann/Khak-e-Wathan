@@ -3,7 +3,7 @@ export type ValuationDirection =
   | "negative"
   | "neutral";
 
-export type ValuationConfidence =
+export type ValuationDataCompleteness =
   | "low"
   | "medium"
   | "high";
@@ -25,7 +25,8 @@ export type PropertyValuation = {
 
   totalAdjustmentPercent: number;
 
-  confidence: ValuationConfidence;
+  dataCompleteness:
+    ValuationDataCompleteness;
 
   factors: ValuationFactor[];
 };
