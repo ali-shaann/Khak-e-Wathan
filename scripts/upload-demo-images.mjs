@@ -16,14 +16,12 @@ const serviceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
-  throw new Error(
-    "Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL."
-  );
+  throw new Error("Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL.");
 }
 
 if (!serviceRoleKey) {
   throw new Error(
-    "Missing SUPABASE_SERVICE_ROLE_KEY. Add it only to your local .env.local, never commit or share it."
+    "Missing SUPABASE_SERVICE_ROLE_KEY. Add it only to local .env.local, never commit it."
   );
 }
 
@@ -47,14 +45,11 @@ const manifest = JSON.parse(
   )
 );
 
-const expectedIds =
-  manifest.map((item) => item.id);
-
-/* ------------------------------------------------------------
-   SAFETY CHECK
-   SQL must be run first. Do not clear storage if the seed rows
-   do not exist yet.
------------------------------------------------------------- */
+const expectedIds = manifest.map((item) => item.id);
+const expectedImageCount = manifest.reduce(
+  (total, item) => total + item.images.length,
+  0
+);
 
 const {
   data: seededRows,
@@ -64,9 +59,7 @@ const {
   .select("id")
   .in("id", expectedIds);
 
-if (seededRowsError) {
-  throw seededRowsError;
-}
+if (seededRowsError) throw seededRowsError;
 
 const foundIds =
   new Set((seededRows ?? []).map((row) => row.id));
@@ -80,109 +73,72 @@ if (missingIds.length > 0) {
   );
 }
 
-console.log(
-  `Found all ${expectedIds.length} seeded properties.`
-);
+console.log(`Found all ${expectedIds.length} seeded properties.`);
 
-/* ------------------------------------------------------------
-   CLEAR EXISTING PROPERTY IMAGE STORAGE
------------------------------------------------------------- */
-
-const existingFiles =
-  await collectAllFiles("");
+const existingFiles = await collectAllFiles("");
 
 if (existingFiles.length > 0) {
   console.log(
     `Removing ${existingFiles.length} existing file(s) from ${bucket}...`
   );
 
-  for (
-    let index = 0;
-    index < existingFiles.length;
-    index += 100
-  ) {
-    const chunk =
-      existingFiles.slice(
-        index,
-        index + 100
-      );
+  for (let index = 0; index < existingFiles.length; index += 100) {
+    const chunk = existingFiles.slice(index, index + 100);
 
-    const {
-      error: removeError,
-    } = await supabase.storage
-      .from(bucket)
-      .remove(chunk);
+    const { error: removeError } =
+      await supabase.storage.from(bucket).remove(chunk);
 
-    if (removeError) {
-      throw removeError;
-    }
+    if (removeError) throw removeError;
   }
 }
 
-/* ------------------------------------------------------------
-   CLEAR IMAGE METADATA
-   (SQL already does this, but repeating it makes the uploader
-   safe to rerun after a partial image upload.)
------------------------------------------------------------- */
+const { error: deleteMetadataError } =
+  await supabase
+    .from("property_images")
+    .delete()
+    .not("id", "is", null);
 
-const {
-  error: deleteMetadataError,
-} = await supabase
-  .from("property_images")
-  .delete()
-  .not("id", "is", null);
-
-if (deleteMetadataError) {
-  throw deleteMetadataError;
-}
-
-/* ------------------------------------------------------------
-   UPLOAD 2 REPRESENTATIVE DEMO IMAGES PER PROPERTY
------------------------------------------------------------- */
+if (deleteMetadataError) throw deleteMetadataError;
 
 const imageRows = [];
 
 for (const item of manifest) {
-  for (
-    let index = 0;
-    index < item.images.length;
-    index++
-  ) {
-    const filename =
-      item.images[index];
+  for (let index = 0; index < item.images.length; index++) {
+    const filename = item.images[index];
 
-    const localPath =
-      path.join(
-        projectRoot,
-        "demo-seed-images",
-        item.id,
-        filename
-      );
+    const localPath = path.join(
+      projectRoot,
+      "demo-seed-images",
+      item.id,
+      filename
+    );
 
-    const bytes =
-      await fs.readFile(localPath);
-
+    const bytes = await fs.readFile(localPath);
     const storagePath =
       `demo-seed/${item.id}/${filename}`;
 
-    const {
-      error: uploadError,
-    } = await supabase.storage
-      .from(bucket)
-      .upload(
-        storagePath,
-        bytes,
-        {
-          contentType:
-            "image/jpeg",
+    const extension =
+      path.extname(filename).toLowerCase();
 
-          cacheControl:
-            "3600",
+    const contentType =
+      extension === ".png"
+        ? "image/png"
+        : extension === ".webp"
+          ? "image/webp"
+          : "image/jpeg";
 
-          upsert:
-            true,
-        }
-      );
+    const { error: uploadError } =
+      await supabase.storage
+        .from(bucket)
+        .upload(
+          storagePath,
+          bytes,
+          {
+            contentType,
+            cacheControl: "3600",
+            upsert: true,
+          }
+        );
 
     if (uploadError) {
       throw new Error(
@@ -191,41 +147,24 @@ for (const item of manifest) {
     }
 
     imageRows.push({
-      property_id:
-        item.id,
-
-      storage_path:
-        storagePath,
-
+      property_id: item.id,
+      storage_path: storagePath,
       alt_text:
-        `Representative demo visual for ${item.title}. Synthetic illustration; not an actual parcel photograph.`,
-
-      display_order:
-        index,
-
-      is_primary:
-        index === 0,
+        `AI-generated representative demo visual for ${item.title}; not an actual property photograph.`,
+      display_order: index,
+      is_primary: index === 0,
     });
 
-    console.log(
-      `Uploaded ${storagePath}`
-    );
+    console.log(`Uploaded ${storagePath}`);
   }
 }
 
-const {
-  error: insertError,
-} = await supabase
-  .from("property_images")
-  .insert(imageRows);
+const { error: insertError } =
+  await supabase
+    .from("property_images")
+    .insert(imageRows);
 
-if (insertError) {
-  throw insertError;
-}
-
-/* ------------------------------------------------------------
-   VERIFY
------------------------------------------------------------- */
+if (insertError) throw insertError;
 
 const {
   count: propertyCount,
@@ -238,9 +177,7 @@ const {
   })
   .eq("listing_status", "active");
 
-if (propertyCountError) {
-  throw propertyCountError;
-}
+if (propertyCountError) throw propertyCountError;
 
 const {
   count: imageCount,
@@ -252,58 +189,43 @@ const {
     head: true,
   });
 
-if (imageCountError) {
-  throw imageCountError;
-}
+if (imageCountError) throw imageCountError;
 
 console.log("");
-console.log("Demo seed upload complete.");
+console.log("Realistic demo seed upload complete.");
 console.log(`Active properties: ${propertyCount}`);
 console.log(`Image rows: ${imageCount}`);
-console.log("Expected: 15 active properties and 30 image rows.");
+console.log(
+  `Expected: ${expectedIds.length} active properties and ${expectedImageCount} image rows.`
+);
 console.log("");
 console.log(
-  "SECURITY: remove SUPABASE_SERVICE_ROLE_KEY from .env.local after this one-time seed."
+  "SECURITY: remove SUPABASE_SERVICE_ROLE_KEY from .env.local now."
 );
 
-
-/* ============================================================
-   HELPERS
-============================================================ */
-
-async function collectAllFiles(
-  prefix
-) {
+async function collectAllFiles(prefix) {
   const files = [];
   let offset = 0;
 
   while (true) {
-    const {
-      data,
-      error,
-    } = await supabase.storage
-      .from(bucket)
-      .list(
-        prefix,
-        {
-          limit: 100,
-          offset,
-          sortBy: {
-            column:
-              "name",
+    const { data, error } =
+      await supabase.storage
+        .from(bucket)
+        .list(
+          prefix,
+          {
+            limit: 100,
+            offset,
+            sortBy: {
+              column: "name",
+              order: "asc",
+            },
+          }
+        );
 
-            order:
-              "asc",
-          },
-        }
-      );
+    if (error) throw error;
 
-    if (error) {
-      throw error;
-    }
-
-    const items =
-      data ?? [];
+    const items = data ?? [];
 
     for (const item of items) {
       const itemPath =
@@ -311,124 +233,53 @@ async function collectAllFiles(
           ? `${prefix}/${item.name}`
           : item.name;
 
-      /*
-        Supabase Storage folders are virtual. Folder entries
-        normally have no id / metadata, while real objects do.
-      */
-      if (
-        item.id ||
-        item.metadata
-      ) {
-        files.push(
-          itemPath
-        );
+      if (item.id || item.metadata) {
+        files.push(itemPath);
       } else {
         files.push(
-          ...(
-            await collectAllFiles(
-              itemPath
-            )
-          )
+          ...(await collectAllFiles(itemPath))
         );
       }
     }
 
-    if (
-      items.length <
-      100
-    ) {
-      break;
-    }
-
-    offset +=
-      items.length;
+    if (items.length < 100) break;
+    offset += items.length;
   }
 
   return files;
 }
 
-
-async function loadEnvFile(
-  filePath
-) {
+async function loadEnvFile(filePath) {
   try {
-    const raw =
-      await fs.readFile(
-        filePath,
-        "utf8"
-      );
+    const raw = await fs.readFile(filePath, "utf8");
 
-    for (
-      const rawLine of
-      raw.split(/\r?\n/)
-    ) {
-      const line =
-        rawLine.trim();
+    for (const rawLine of raw.split(/\r?\n/)) {
+      const line = rawLine.trim();
 
-      if (
-        !line ||
-        line.startsWith("#")
-      ) {
-        continue;
-      }
+      if (!line || line.startsWith("#")) continue;
 
-      const separator =
-        line.indexOf("=");
+      const separator = line.indexOf("=");
 
-      if (
-        separator <= 0
-      ) {
-        continue;
-      }
+      if (separator <= 0) continue;
 
       const key =
-        line
-          .slice(
-            0,
-            separator
-          )
-          .trim();
+        line.slice(0, separator).trim();
 
       let value =
-        line
-          .slice(
-            separator + 1
-          )
-          .trim();
+        line.slice(separator + 1).trim();
 
       if (
-        (
-          value.startsWith('"') &&
-          value.endsWith('"')
-        ) ||
-        (
-          value.startsWith("'") &&
-          value.endsWith("'")
-        )
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
       ) {
-        value =
-          value.slice(
-            1,
-            -1
-          );
+        value = value.slice(1, -1);
       }
 
-      if (
-        process.env[key] ===
-        undefined
-      ) {
-        process.env[key] =
-          value;
+      if (process.env[key] === undefined) {
+        process.env[key] = value;
       }
     }
-  } catch (
-    error
-  ) {
-    if (
-      error?.code !==
-      "ENOENT"
-    ) {
-      throw error;
-    }
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
   }
 }
