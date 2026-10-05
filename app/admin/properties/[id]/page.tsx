@@ -141,6 +141,13 @@ export default async function AdminPropertyPage({
           photos,
           ownership_evidence,
           physical_inspection,
+          seller_identity_note,
+          property_location_note,
+          photos_note,
+          ownership_evidence_note,
+          physical_inspection_note,
+          reviewer_display_name,
+          reviewed_at,
           updated_at
         )
       `)
@@ -250,6 +257,20 @@ export default async function AdminPropertyPage({
       string;
     physical_inspection:
       string;
+    seller_identity_note:
+      string | null;
+    property_location_note:
+      string | null;
+    photos_note:
+      string | null;
+    ownership_evidence_note:
+      string | null;
+    physical_inspection_note:
+      string | null;
+    reviewer_display_name:
+      string | null;
+    reviewed_at:
+      string | null;
     updated_at:
       string;
   };
@@ -290,6 +311,28 @@ export default async function AdminPropertyPage({
       "not_checked",
   };
 
+  const verificationNotes = {
+    sellerIdentity:
+      verification?.seller_identity_note ??
+      "",
+
+    propertyLocation:
+      verification?.property_location_note ??
+      "",
+
+    photos:
+      verification?.photos_note ??
+      "",
+
+    ownershipEvidence:
+      verification?.ownership_evidence_note ??
+      "",
+
+    physicalInspection:
+      verification?.physical_inspection_note ??
+      "",
+  };
+
   const verificationList = [
     verificationValues.sellerIdentity,
     verificationValues.propertyLocation,
@@ -319,6 +362,17 @@ export default async function AdminPropertyPage({
   const isPendingReview =
     property.listing_status ===
     "pending_review";
+
+  const canPublish =
+    verificationValues
+      .sellerIdentity ===
+      "verified" &&
+    verificationValues
+      .propertyLocation ===
+      "verified" &&
+    verificationValues
+      .photos ===
+      "verified";
 
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-slate-950">
@@ -810,14 +864,79 @@ export default async function AdminPropertyPage({
               </div>
 
 
-              {verification?.updated_at && (
+              {(verification?.reviewed_at ||
+                verification?.updated_at) && (
                 <p className="mt-4 text-xs text-slate-400">
-                  Last updated{" "}
+                  Last reviewed{" "}
                   {new Date(
-                    verification.updated_at
+                    verification.reviewed_at ??
+                      verification.updated_at
                   ).toLocaleString()}
+                  {verification.reviewer_display_name
+                    ? ` by ${verification.reviewer_display_name}`
+                    : ""}
                 </p>
               )}
+
+
+              <div className={`mt-6 rounded-[1.5rem] border p-4 ${
+                canPublish
+                  ? "border-emerald-200 bg-emerald-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}>
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+
+                  <div>
+                    <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${
+                      canPublish
+                        ? "text-emerald-700"
+                        : "text-amber-700"
+                    }`}>
+                      Publication readiness
+                    </p>
+
+                    <p className={`mt-1 text-sm font-semibold ${
+                      canPublish
+                        ? "text-emerald-950"
+                        : "text-amber-950"
+                    }`}>
+                      {canPublish
+                        ? "Core verification is complete."
+                        : "Complete the three core checks before publishing."}
+                    </p>
+                  </div>
+
+
+                  <div className="flex flex-wrap gap-2">
+                    <CoreCheckPill
+                      label="Identity"
+                      complete={
+                        verificationValues
+                          .sellerIdentity ===
+                        "verified"
+                      }
+                    />
+
+                    <CoreCheckPill
+                      label="Location"
+                      complete={
+                        verificationValues
+                          .propertyLocation ===
+                        "verified"
+                      }
+                    />
+
+                    <CoreCheckPill
+                      label="Photos"
+                      complete={
+                        verificationValues
+                          .photos ===
+                        "verified"
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
 
 
               <form
@@ -838,50 +957,80 @@ export default async function AdminPropertyPage({
 
                 <div className="grid gap-4 md:grid-cols-2">
 
-                  <VerificationSelect
+                  <VerificationField
                     label="Seller identity"
                     name="sellerIdentity"
+                    noteName="sellerIdentityNote"
                     defaultValue={
                       verificationValues.sellerIdentity
                     }
+                    defaultNote={
+                      verificationNotes.sellerIdentity
+                    }
+                    core
                   />
 
 
-                  <VerificationSelect
+                  <VerificationField
                     label="Property location"
                     name="propertyLocation"
+                    noteName="propertyLocationNote"
                     defaultValue={
                       verificationValues.propertyLocation
                     }
+                    defaultNote={
+                      verificationNotes.propertyLocation
+                    }
+                    core
                   />
 
 
-                  <VerificationSelect
+                  <VerificationField
                     label="Photos"
                     name="photos"
+                    noteName="photosNote"
                     defaultValue={
                       verificationValues.photos
                     }
+                    defaultNote={
+                      verificationNotes.photos
+                    }
+                    core
                   />
 
 
-                  <VerificationSelect
+                  <VerificationField
                     label="Ownership evidence"
                     name="ownershipEvidence"
+                    noteName="ownershipEvidenceNote"
                     defaultValue={
                       verificationValues.ownershipEvidence
                     }
+                    defaultNote={
+                      verificationNotes.ownershipEvidence
+                    }
                   />
 
 
-                  <VerificationSelect
+                  <VerificationField
                     label="Physical inspection"
                     name="physicalInspection"
+                    noteName="physicalInspectionNote"
                     defaultValue={
                       verificationValues.physicalInspection
                     }
+                    defaultNote={
+                      verificationNotes.physicalInspection
+                    }
                   />
                 </div>
+
+
+                <p className="mt-4 text-xs leading-5 text-slate-400">
+                  Record the evidence type or a short factual note. Do not enter
+                  identity numbers, document numbers, phone numbers, or other
+                  sensitive personal information.
+                </p>
 
 
                 <PendingSubmitButton
@@ -972,14 +1121,25 @@ export default async function AdminPropertyPage({
 
                     <p className="text-xs leading-5 text-slate-400">
                       Approval publishes the listing to the public marketplace.
+                      Seller identity, location, and photos must be verified
+                      first.
                     </p>
 
 
-                    <PendingSubmitButton
-                      idleLabel="Approve & publish"
-                      pendingLabel="Publishing…"
-                      className="mt-4 w-full rounded-full bg-emerald-400 px-6 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-300"
-                    />
+                    {canPublish ? (
+                      <PendingSubmitButton
+                        idleLabel="Approve & publish"
+                        pendingLabel="Publishing…"
+                        className="mt-4 w-full rounded-full bg-emerald-400 px-6 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-300"
+                      />
+                    ) : (
+                      <span
+                        aria-disabled="true"
+                        className="mt-4 block w-full cursor-not-allowed rounded-full bg-white/10 px-6 py-3.5 text-center text-sm font-bold text-slate-500"
+                      >
+                        Complete core verification first
+                      </span>
+                    )}
                   </form>
 
 
@@ -1148,22 +1308,46 @@ function SectionHeading({
 }
 
 
-function VerificationSelect({
+function VerificationField({
   label,
   name,
+  noteName,
   defaultValue,
+  defaultNote,
+  core = false,
 }: {
   label: string;
   name: string;
+  noteName: string;
   defaultValue: string;
+  defaultNote: string;
+  core?: boolean;
 }) {
-  return (
-    <label className="block rounded-[1.4rem] border border-slate-100 bg-slate-50 p-4">
+  const stateClassName =
+    defaultValue ===
+    "verified"
+      ? "border-emerald-200 bg-emerald-50/60"
+      : defaultValue ===
+          "pending"
+        ? "border-amber-200 bg-amber-50/50"
+        : "border-slate-100 bg-slate-50";
 
-      <span className="mb-3 block text-sm font-semibold text-slate-700">
-        {
-          label
-        }
+
+  return (
+    <label className={`block rounded-[1.4rem] border p-4 transition focus-within:border-slate-300 focus-within:bg-white ${stateClassName}`}>
+
+      <span className="mb-3 flex items-center justify-between gap-3 text-sm font-semibold text-slate-700">
+        <span>
+          {
+            label
+          }
+        </span>
+
+        {core && (
+          <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-white">
+            Core
+          </span>
+        )}
       </span>
 
 
@@ -1188,7 +1372,56 @@ function VerificationSelect({
           Verified
         </option>
       </select>
+
+
+      <span className="mb-2 mt-4 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+        Evidence note
+        {defaultValue ===
+          "verified" && (
+          <span className="ml-1 text-red-500">
+            Required
+          </span>
+        )}
+      </span>
+
+
+      <textarea
+        name={
+          noteName
+        }
+        defaultValue={
+          defaultNote
+        }
+        maxLength={300}
+        rows={3}
+        placeholder="Example: Photo set matches the submitted location."
+        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-slate-400"
+      />
     </label>
+  );
+}
+
+
+function CoreCheckPill({
+  label,
+  complete,
+}: {
+  label: string;
+  complete: boolean;
+}) {
+  return (
+    <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+      complete
+        ? "border-emerald-200 bg-white text-emerald-700"
+        : "border-amber-200 bg-white/70 text-amber-700"
+    }`}>
+      {complete
+        ? "✓ "
+        : "○ "}
+      {
+        label
+      }
+    </span>
   );
 }
 

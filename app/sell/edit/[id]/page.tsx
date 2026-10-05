@@ -461,7 +461,24 @@ export default async function EditPropertyPage({
             </div>
 
 
-            <LocationPickerShell />
+            <LocationPickerShell
+              initialLatitude={
+                property.latitude ===
+                null
+                  ? null
+                  : Number(
+                      property.latitude
+                    )
+              }
+              initialLongitude={
+                property.longitude ===
+                null
+                  ? null
+                  : Number(
+                      property.longitude
+                    )
+              }
+            />
 
 
             <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">

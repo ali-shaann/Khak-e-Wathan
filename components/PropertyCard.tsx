@@ -35,9 +35,19 @@ export default function PropertyCard({
     ).length;
 
   const verificationLabel =
-    verificationValues.length > 0
-      ? `${verifiedCount}/${verificationValues.length} checks`
-      : "Checks pending";
+    verifiedCount ===
+    verificationValues.length
+      ? "Fully verified"
+      : `${verifiedCount}/${verificationValues.length} verified`;
+
+  const verificationClassName =
+    verifiedCount ===
+    verificationValues.length
+      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+      : verifiedCount >=
+          3
+        ? "border-amber-100 bg-amber-50 text-amber-700"
+        : "border-slate-200 bg-slate-100 text-slate-500";
 
 
   return (
@@ -80,6 +90,18 @@ export default function PropertyCard({
             property.type
           }
         </span>
+
+
+        {property.images.length >
+          0 && (
+          <span className="absolute right-4 top-4 rounded-full border border-white/70 bg-slate-950/75 px-3 py-1.5 text-[10px] font-semibold text-white shadow-sm backdrop-blur">
+            {property.images.length}{" "}
+            {property.images.length ===
+            1
+              ? "photo"
+              : "photos"}
+          </span>
+        )}
       </Link>
 
 
@@ -104,7 +126,7 @@ export default function PropertyCard({
           </div>
 
 
-          <span className="max-w-[120px] shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700">
+          <span className={`max-w-[128px] shrink-0 rounded-full border px-2.5 py-1 text-center text-[9px] font-bold uppercase tracking-[0.08em] ${verificationClassName}`}>
             {
               verificationLabel
             }
@@ -169,13 +191,13 @@ export default function PropertyCard({
         </div>
 
 
-        <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
+        <div className="mt-5 rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-emerald-50/40 p-3.5">
 
           <div className="flex items-center justify-between gap-3">
 
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                Explainable estimate
+                Value guidance
               </p>
 
               <p className="mt-1 text-sm font-semibold text-slate-700">
@@ -186,8 +208,10 @@ export default function PropertyCard({
             </div>
 
 
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm">
-              ↗
+            <div className="text-right">
+              <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-emerald-700 shadow-sm">
+                {property.valuation.dataCompleteness} data
+              </span>
             </div>
           </div>
         </div>
@@ -197,7 +221,7 @@ export default function PropertyCard({
           href={`/properties/${property.id}`}
           className="mt-auto flex w-full items-center justify-between border-t border-slate-100 pt-5 text-sm font-semibold text-slate-800 transition group-hover:text-emerald-700"
         >
-          View property
+          View Property Passport
 
           <span className="transition duration-300 group-hover:translate-x-1">
             →

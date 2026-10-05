@@ -18,6 +18,7 @@ import PropertyCard from "@/components/PropertyCard";
 import {
   describeIntent,
   filterPropertiesByIntent,
+  rankPropertiesByIntent,
   type NaturalSearchIntent,
 } from "@/lib/naturalSearch";
 
@@ -166,7 +167,7 @@ export default function PropertyExplorer({
     setSort,
   ] =
     useState(
-      "recommended"
+      "newest"
     );
 
 
@@ -617,6 +618,36 @@ export default function PropertyExplorer({
     manualFilterChips.length >
       0;
 
+  const nearMatches =
+    useMemo(
+      () => {
+        if (
+          filteredProperties.length >
+            0 ||
+          !aiIntentEnabled ||
+          !initialIntent ||
+          manualFilterChips.length >
+            0
+        ) {
+          return [];
+        }
+
+
+        return rankPropertiesByIntent(
+          properties,
+          initialIntent,
+          3
+        );
+      },
+      [
+        filteredProperties.length,
+        aiIntentEnabled,
+        initialIntent,
+        manualFilterChips.length,
+        properties,
+      ]
+    );
+
 
   function submitSearch(
     event:
@@ -687,7 +718,7 @@ export default function PropertyExplorer({
     );
 
     setSort(
-      "recommended"
+      "newest"
     );
   }
 
@@ -1119,9 +1150,9 @@ export default function PropertyExplorer({
                     options={[
                       {
                         label:
-                          "Recommended",
+                          "Newest",
                         value:
-                          "recommended",
+                          "newest",
                       },
                       {
                         label:
@@ -1250,7 +1281,10 @@ export default function PropertyExplorer({
         </section>
 
 
-        <div className="mt-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div
+          aria-live="polite"
+          className="mt-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"
+        >
 
           <div>
 
@@ -1312,32 +1346,136 @@ export default function PropertyExplorer({
             )}
           </div>
         ) : (
-          <div className="mt-7 rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+          <div className={`mt-7 rounded-[2rem] border px-6 py-14 text-center shadow-sm ${
+            nearMatches.length >
+            0
+              ? "border-emerald-200 bg-gradient-to-b from-emerald-50/70 to-white"
+              : "border-dashed border-slate-300 bg-white"
+          }`}>
 
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-xl">
-              ⌕
+            <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-xl ${
+              nearMatches.length >
+              0
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-slate-100 text-slate-500"
+            }`}>
+              {nearMatches.length >
+              0
+                ? "≈"
+                : "⌕"}
             </div>
 
 
             <h3 className="mt-5 text-xl font-bold">
-              No properties match these filters
+              {nearMatches.length >
+              0
+                ? "No exact match — here are the closest options"
+                : "No properties match these filters"}
             </h3>
 
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Try removing a filter, raising the budget, or starting with a broader search.
+              {nearMatches.length >
+              0
+                ? "No exact result is available, but these properties satisfy most of the request."
+                : "Try removing a filter, raising the budget, or starting with a broader search."}
             </p>
 
 
-            <button
-              type="button"
-              onClick={
-                clearEverything
-              }
-              className="mt-6 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-            >
-              Show all properties
-            </button>
+            {nearMatches.length ===
+            0 && (
+              <button
+                type="button"
+                onClick={
+                  clearEverything
+                }
+                className="mt-6 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Show all properties
+              </button>
+            )}
+
+
+            {nearMatches.length >
+              0 && (
+              <div className="mt-8 border-t border-emerald-100 pt-8 text-left">
+
+                <div className="text-center">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
+                    Closest available matches
+                  </p>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Each card explains which requested details differ.
+                  </p>
+                </div>
+
+
+                <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {nearMatches.map(
+                    (
+                      match
+                    ) => (
+                      <div
+                        key={
+                          match.property.id
+                        }
+                        className="flex flex-col gap-3"
+                      >
+                        <PropertyCard
+                          property={
+                            match.property
+                          }
+                        />
+
+
+                        <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">
+                            {Math.round(
+                              match.score *
+                                100
+                            )}% of requested details matched
+                          </p>
+
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {match.differences.map(
+                              (
+                                difference
+                              ) => (
+                                <span
+                                  key={
+                                    difference
+                                  }
+                                  className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-amber-800"
+                                >
+                                  {
+                                    difference
+                                  }
+                                </span>
+                              )
+                            )}
+                          </div>
+
+
+                          <div className="mt-8 text-center">
+                            <button
+                              type="button"
+                              onClick={
+                                clearEverything
+                              }
+                              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
+                            >
+                              Clear search and show all properties
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </section>

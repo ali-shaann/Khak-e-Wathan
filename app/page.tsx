@@ -310,27 +310,29 @@ export default async function Home() {
 
       {/* Trust / platform strip */}
       <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:grid-cols-4">
+        <div className="grid grid-cols-2 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_50px_-36px_rgba(15,23,42,0.45)] lg:grid-cols-4">
+          <Metric
+            value={String(
+              properties.length
+            )}
+            label="Active demo listings"
+          />
+
           <Metric
             value={String(
               featuredGroups.length
             )}
-            label="Active areas"
+            label="Areas with listings"
           />
 
           <Metric
-            value="Map"
-            label="Explore properties visually"
+            value="5"
+            label="Visible verification checks"
           />
 
           <Metric
-            value="Details"
-            label="Clear property profiles"
-          />
-
-          <Metric
-            value="Smart"
-            label="Search & value guidance"
+            value="3"
+            label="Guided seller steps"
           />
         </div>
       </section>

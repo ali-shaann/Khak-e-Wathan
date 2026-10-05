@@ -43,6 +43,19 @@ export type PropertyVerification = {
   physicalInspection: VerificationStatus;
 };
 
+export type PropertyVerificationDetails = {
+  reviewerName: string | null;
+  reviewedAt: string | null;
+
+  notes: {
+    sellerIdentity: string | null;
+    location: string | null;
+    photos: string | null;
+    ownershipEvidence: string | null;
+    physicalInspection: string | null;
+  };
+};
+
 export type PropertyImage = {
   id: string;
   storagePath: string;
@@ -100,6 +113,6 @@ export type Property = {
   sellerName: string;
 
   verification: PropertyVerification;
+  verificationDetails: PropertyVerificationDetails;
   images: PropertyImage[];
 };
-

@@ -30,8 +30,21 @@ const LocationPicker =
   );
 
 
-export default function LocationPickerShell() {
+export default function LocationPickerShell({
+  initialLatitude = null,
+  initialLongitude = null,
+}: {
+  initialLatitude?: number | null;
+  initialLongitude?: number | null;
+}) {
   return (
-    <LocationPicker />
+    <LocationPicker
+      initialLatitude={
+        initialLatitude
+      }
+      initialLongitude={
+        initialLongitude
+      }
+    />
   );
 }

@@ -7,6 +7,7 @@ import {
 import MLValuationCard from "@/components/MLValuationCard";
 import Navbar from "@/components/Navbar";
 import PropertyPassport from "@/components/PropertyPassport";
+import PropertyInquiryForm from "@/components/PropertyInquiryForm";
 import SinglePropertyMapShell from "@/components/map/SinglePropertyMapShell";
 
 import {
@@ -164,7 +165,7 @@ export default async function PropertyPage({
             </div>
 
 
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4 lg:min-w-[250px] lg:text-right">
+            <div className="rounded-[1.5rem] border border-slate-200 bg-gradient-to-br from-slate-50 to-emerald-50/60 px-5 py-4 shadow-sm lg:min-w-[270px] lg:text-right">
               <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                 Asking price
               </p>
@@ -176,6 +177,18 @@ export default async function PropertyPage({
               <p className="mt-2 text-xs font-semibold text-emerald-700">
                 Estimate: {property.estimate}
               </p>
+
+
+              <Link
+                href="#request-viewing"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 lg:w-auto"
+              >
+                Request a viewing
+
+                <span aria-hidden="true">
+                  →
+                </span>
+              </Link>
             </div>
           </div>
         </div>
@@ -304,6 +317,7 @@ export default async function PropertyPage({
             <SectionLink href="#verification" label="Verification" />
             <SectionLink href="#valuation" label="Valuation" />
             <SectionLink href="#location" label="Location" />
+            <SectionLink href="#request-viewing" label="Request viewing" />
           </div>
         </nav>
 
@@ -371,28 +385,66 @@ export default async function PropertyPage({
                 <VerificationItem
                   label="Seller identity"
                   status={property.verification.sellerIdentity}
+                  note={
+                    property.verificationDetails
+                      .notes.sellerIdentity
+                  }
                 />
 
                 <VerificationItem
                   label="Property location"
                   status={property.verification.location}
+                  note={
+                    property.verificationDetails
+                      .notes.location
+                  }
                 />
 
                 <VerificationItem
                   label="Property photos"
                   status={property.verification.photos}
+                  note={
+                    property.verificationDetails
+                      .notes.photos
+                  }
                 />
 
                 <VerificationItem
                   label="Ownership evidence"
                   status={property.verification.ownershipEvidence}
+                  note={
+                    property.verificationDetails
+                      .notes.ownershipEvidence
+                  }
                 />
 
                 <VerificationItem
                   label="Physical inspection"
                   status={property.verification.physicalInspection}
+                  note={
+                    property.verificationDetails
+                      .notes.physicalInspection
+                  }
                 />
               </div>
+
+
+              {property.verificationDetails
+                .reviewedAt && (
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-xs leading-5 text-slate-500">
+                  Last reviewed{" "}
+                  {new Date(
+                    property.verificationDetails
+                      .reviewedAt
+                  ).toLocaleDateString()}
+                  {property.verificationDetails
+                    .reviewerName
+                    ? ` by ${property.verificationDetails.reviewerName}`
+                    : ""}
+                  . Public notes summarize the check without exposing private
+                  documents.
+                </div>
+              )}
 
 
               <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-xs leading-5 text-slate-500">
@@ -437,7 +489,7 @@ export default async function PropertyPage({
                     </p>
 
                     <span className="mt-3 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-semibold capitalize text-slate-300">
-                      {property.valuation.confidence} confidence
+                      {property.valuation.dataCompleteness} data completeness
                     </span>
                   </div>
                 </div>
@@ -553,7 +605,7 @@ export default async function PropertyPage({
               <SectionHeading
                 eyebrow="Location"
                 title="Approximate property location"
-                description="The marker shows the approximate coordinates supplied for this listing."
+                description="The public marker is rounded and offset from the precise seller-submitted location."
               />
 
 
@@ -571,9 +623,8 @@ export default async function PropertyPage({
                       Approximate coordinates
                     </span>
 
-                    <span className="font-mono text-[11px] text-slate-600">
-                      {property.latitude.toFixed(6)},{" "}
-                      {property.longitude.toFixed(6)}
+                    <span className="text-[11px] font-semibold text-slate-600">
+                      Exact coordinates withheld for seller privacy
                     </span>
                   </div>
                 </>
@@ -610,7 +661,7 @@ export default async function PropertyPage({
                   </p>
 
                   <p className="mt-1 text-[11px] capitalize text-emerald-700/80">
-                    {property.valuation.confidence} confidence
+                    {property.valuation.dataCompleteness} data completeness
                   </p>
                 </div>
 
@@ -665,12 +716,21 @@ export default async function PropertyPage({
 
 
                 <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-500">
-                  Direct seller messaging is not connected in this prototype.
-                  Review the listing details and verification information before
-                  making any decision.
+                  Use the private viewing-request form below instead of sharing
+                  sensitive information publicly.
                 </div>
               </div>
             </section>
+
+
+            <PropertyInquiryForm
+              propertyId={
+                property.id
+              }
+              propertyTitle={
+                property.title
+              }
+            />
 
 
             <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
@@ -782,9 +842,11 @@ function HeroFact({
 function VerificationItem({
   label,
   status,
+  note,
 }: {
   label: string;
   status: VerificationStatus;
+  note: string | null;
 }) {
   const display =
     status === "verified"
@@ -809,16 +871,26 @@ function VerificationItem({
           };
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-4">
-      <span className="text-sm font-semibold text-slate-700">
-        {label}
-      </span>
+    <div className="rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-4">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm font-semibold text-slate-700">
+          {label}
+        </span>
 
-      <span
-        className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${display.className}`}
-      >
-        {display.symbol} {display.text}
-      </span>
+        <span
+          className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${display.className}`}
+        >
+          {display.symbol} {display.text}
+        </span>
+      </div>
+
+      {note && (
+        <p className="mt-3 border-t border-slate-200/70 pt-3 text-xs leading-5 text-slate-500">
+          {
+            note
+          }
+        </p>
+      )}
     </div>
   );
 }

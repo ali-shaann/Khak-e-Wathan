@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { calculateValuation } from "@/lib/valuation";
+import {
+  approximatePublicCoordinates,
+} from "@/lib/publicLocation";
 
 import type {
   InternetQuality,
@@ -29,6 +32,13 @@ type DatabaseVerification = {
   photos: string | null;
   ownership_evidence: string | null;
   physical_inspection: string | null;
+  seller_identity_note: string | null;
+  property_location_note: string | null;
+  photos_note: string | null;
+  ownership_evidence_note: string | null;
+  physical_inspection_note: string | null;
+  reviewer_display_name: string | null;
+  reviewed_at: string | null;
 };
 
 
@@ -173,7 +183,14 @@ const propertySelect = `
     property_location,
     photos,
     ownership_evidence,
-    physical_inspection
+    physical_inspection,
+    seller_identity_note,
+    property_location_note,
+    photos_note,
+    ownership_evidence_note,
+    physical_inspection_note,
+    reviewer_display_name,
+    reviewed_at
   ),
 
   property_images (
@@ -307,6 +324,11 @@ function mapProperty(
       verificationRow
     );
 
+  const verificationDetails =
+    mapVerificationDetails(
+      verificationRow
+    );
+
   const pricePkr =
     toNumber(
       row.price_pkr
@@ -317,14 +339,24 @@ function mapProperty(
       row.area_value
     );
 
-  const latitude =
+  const rawLatitude =
     toNullableNumber(
       row.latitude
     );
 
-  const longitude =
+  const rawLongitude =
     toNullableNumber(
       row.longitude
+    );
+
+  const {
+    latitude,
+    longitude,
+  } =
+    approximatePublicCoordinates(
+      row.id,
+      rawLatitude,
+      rawLongitude
     );
 
 
@@ -579,7 +611,7 @@ function mapProperty(
       "Seller",
 
     verification,
-
+    verificationDetails,
     images,
   };
 }
@@ -1050,6 +1082,52 @@ function mapVerification(
         verification
           ?.physical_inspection
       ),
+  };
+}
+
+
+function mapVerificationDetails(
+  verification:
+    | DatabaseVerification
+    | null
+) {
+  return {
+    reviewerName:
+      verification
+        ?.reviewer_display_name ??
+      null,
+
+    reviewedAt:
+      verification
+        ?.reviewed_at ??
+      null,
+
+    notes: {
+      sellerIdentity:
+        verification
+          ?.seller_identity_note ??
+        null,
+
+      location:
+        verification
+          ?.property_location_note ??
+        null,
+
+      photos:
+        verification
+          ?.photos_note ??
+        null,
+
+      ownershipEvidence:
+        verification
+          ?.ownership_evidence_note ??
+        null,
+
+      physicalInspection:
+        verification
+          ?.physical_inspection_note ??
+        null,
+    },
   };
 }
 

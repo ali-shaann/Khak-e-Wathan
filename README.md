@@ -97,9 +97,11 @@ The marketplace presents properties in a consistent format with price, land size
 - **Interactive property map**
 - Structured **Property Passport**
 - Road, water, electricity, irrigation and internet information
-- Approximate property coordinates
-- Verification progress and moderation
+- Privacy-protected approximate public locations
+- Evidence notes, reviewer provenance and verification progress
+- Private buyer viewing requests
 - Seller listing and photo-upload workflow
+- Seller inquiry dashboard and listing lifecycle controls
 - Admin approval / rejection workflow
 - Explainable value guidance
 - **ML-assisted valuation**
@@ -120,7 +122,7 @@ Buyers can:
 - combine map exploration with filters
 - view an individual property's approximate location
 
-> Map locations are approximate discovery coordinates. They are **not legal parcel boundaries, cadastral records or survey data**.
+> Public map markers are deterministically offset and rounded. Exact seller-submitted coordinates remain available only in private seller and administrator workflows. Map locations are **not legal parcel boundaries, cadastral records or survey data**.
 
 ---
 
@@ -187,6 +189,8 @@ It is exposed through a **FastAPI** service and deployed independently on **Rail
 **ML API:** https://khak-e-wathan-production.up.railway.app
 
 For the hackathon prototype, the model is trained using **synthetic demonstration data**, so its estimates are not professional appraisals or verified Chitral market prices.
+
+The transparent rule-based estimate is the primary product guidance. The Random Forest result demonstrates a separately deployed ML pipeline and should be presented as a synthetic comparison rather than market evidence.
 
 ---
 
@@ -321,6 +325,8 @@ Sign In
 → Upload Photos
 → Review
 → Submit
+→ Receive Private Viewing Requests
+→ Mark Sold / Archive
 ```
 
 ### Admin
@@ -328,8 +334,8 @@ Sign In
 ```text
 Moderation Queue
 → Open Listing
-→ Review Information
-→ Update Verification Checks
+→ Review Information and Evidence Notes
+→ Record Reviewer and Date
 → Approve / Reject
 ```
 
@@ -352,6 +358,8 @@ This includes demo:
 
 Approximate map points are not cadastral or legal parcel boundaries.
 
+The public application receives an offset and rounded discovery point rather than the precise seller-submitted coordinates.
+
 The valuation feature is a prototype and must not be treated as a professional property appraisal.
 
 ---
@@ -362,6 +370,8 @@ The valuation feature is a prototype and must not be treated as a professional p
 
 ```bash
 npm install
+npm test
+npm run typecheck
 npm run dev
 ```
 
@@ -378,6 +388,53 @@ ML_API_URL=
 ```
 
 Never commit real secret keys.
+
+### Supabase Database
+
+The complete schema, Row Level Security policies, storage policies and RPC functions are versioned in:
+
+```text
+supabase/migrations/20261005013000_initial_schema.sql
+```
+
+Apply the migration before starting the application:
+
+```bash
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+If the Supabase CLI is unavailable, run the migration file once in the Supabase SQL editor.
+
+To install the synthetic hackathon catalogue:
+
+1. Run `sql/01_reset_and_seed.sql`.
+2. Add `SUPABASE_SERVICE_ROLE_KEY` to a temporary local `.env.local`.
+3. Run `node scripts/upload-demo-images.mjs`.
+4. Remove the service-role key immediately.
+5. Run `sql/02_verify_seed.sql`.
+
+The reset and image-upload scripts are intentionally destructive and must only be used against the dedicated demo project.
+
+To create or reset one seller and one administrator account, fill the
+`DEMO_*` values in `.env.local` and run:
+
+```bash
+npm run demo:users
+```
+
+The script confirms both emails, applies the requested passwords, and assigns
+the correct profile roles. Remove the service-role key immediately afterward.
+
+### Validation
+
+```bash
+npm test
+npm run typecheck
+npm run lint
+npm run build
+python -m compileall -q ml
+```
 
 ### Optional Local ML Service
 
